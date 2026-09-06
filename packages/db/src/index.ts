@@ -1,0 +1,15 @@
+import { env } from "@gfinancias/env/server";
+import { PrismaLibSql } from "@prisma/adapter-libsql";
+
+import { PrismaClient } from "../prisma/generated/client";
+
+export function createPrismaClient() {
+  const adapter = new PrismaLibSql({
+    url: env.DATABASE_URL,
+  });
+
+  return new PrismaClient({ adapter });
+}
+
+const prisma = createPrismaClient();
+export default prisma;

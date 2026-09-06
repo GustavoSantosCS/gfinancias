@@ -1,0 +1,28 @@
+// Better-T-Stack project metadata
+//
+// Keep this file to use the `add` command.
+// Add addons: npx create-better-t-stack@latest add
+//
+// Docs: https://better-t-stack.dev/docs
+// Stack Builder: https://better-t-stack.dev/new
+
+{
+    "$schema": "https://r2.better-t-stack.dev/schema.json",
+    "version": "3.42.2",
+    "createdAt": "2026-09-06T22:36:22.598Z",
+    "reproducibleCommand": "npx create-better-t-stack@latest gfinancias --frontend next --backend fastify --runtime node --database sqlite --orm prisma --api trpc --auth none --payments none --addons vite-plus --examples none --db-setup none --web-deploy none --server-deploy none --git --package-manager npm --install",
+    "database": "sqlite",
+    "orm": "prisma",
+    "backend": "fastify",
+    "runtime": "node",
+    "frontend": ["next"],
+    "addons": ["vite-plus"],
+    "examples": [],
+    "auth": "none",
+    "payments": "none",
+    "packageManager": "npm",
+    "dbSetup": "none",
+    "api": "trpc",
+    "webDeploy": "none",
+    "serverDeploy": "none",
+}

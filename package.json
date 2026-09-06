@@ -1,0 +1,48 @@
+{
+    "name": "gfinancias",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "type": "module",
+    "scripts": {
+        "dev": "vp run -r dev",
+        "build": "vp run -r build",
+        "check-types": "vp run -r check-types",
+        "check": "vp check && vp run -r check-types",
+        "lint": "vp lint",
+        "format": "vp fmt",
+        "staged": "vp staged",
+        "hooks:setup": "vp config",
+        "dev:web": "vp run --filter web dev",
+        "dev:server": "vp run --filter server dev",
+        "db:push": "vp run --filter @gfinancias/db db:push",
+        "db:studio": "vp run --filter @gfinancias/db db:studio",
+        "db:generate": "vp run --filter @gfinancias/db db:generate",
+        "db:migrate": "vp run --filter @gfinancias/db db:migrate",
+        "db:local": "vp run --filter @gfinancias/db db:local"
+    },
+    "dependencies": {
+        "@gfinancias/env": "*",
+        "dotenv": "^17.4.2",
+        "zod": "^4.4.3"
+    },
+    "devDependencies": {
+        "@gfinancias/config": "*",
+        "@types/node": "^26.2.0",
+        "rolldown": "1.2.6",
+        "typescript": "^6.0.3",
+        "vite-plus": "0.3.0"
+    },
+    "overrides": {
+        "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0"
+    },
+    "packageManager": "npm@11.19.1",
+    "allowScripts": {
+        "esbuild": true,
+        "sharp": true,
+        "@prisma/engines": true,
+        "prisma": true
+    }
+}
