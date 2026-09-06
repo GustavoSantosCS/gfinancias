@@ -14,14 +14,16 @@
         "lint": "vp lint",
         "format": "vp fmt",
         "staged": "vp staged",
-        "hooks:setup": "vp config",
+        "hooks:setup": "vp hooks enable",
         "dev:web": "vp run --filter web dev",
         "dev:server": "vp run --filter server dev",
         "db:push": "vp run --filter @gfinancias/db db:push",
         "db:studio": "vp run --filter @gfinancias/db db:studio",
         "db:generate": "vp run --filter @gfinancias/db db:generate",
         "db:migrate": "vp run --filter @gfinancias/db db:migrate",
-        "db:local": "vp run --filter @gfinancias/db db:local"
+        "db:local": "vp run --filter @gfinancias/db db:local",
+        "test": "vp test run",
+        "prepare": "vp config --no-agent"
     },
     "dependencies": {
         "@gfinancias/env": "*",

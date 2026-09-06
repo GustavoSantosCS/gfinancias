@@ -45,4 +45,3 @@ Execute a partir da raiz:
 - Execute as verificações pertinentes à alteração e informe falhas ou verificações que não puderam ser executadas.
 - Reutilize os componentes compartilhados e mantenha o acesso ao banco no backend.
 - Preserve alterações preexistentes do usuário. Não inclua segredos ou arquivos de ambiente em commits.
-- A indentação é 4 espaços;

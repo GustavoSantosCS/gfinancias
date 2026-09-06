@@ -13,8 +13,8 @@ export default defineConfig({
             "packages/db/prisma/generated/**",
         ],
         options: {
-            typeAware: false,
-            typeCheck: false,
+            typeAware: true,
+            typeCheck: true,
         },
     },
     fmt: {
@@ -28,11 +28,23 @@ export default defineConfig({
             "packages/db/local.db*",
             "packages/db/prisma/generated/**",
         ],
+        overrides: [
+            {
+                files: ["**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc,json5}"],
+                options: {
+                    tabWidth: 4,
+                    useTabs: false,
+                },
+            },
+        ],
         singleQuote: false,
         semi: true,
         sortPackageJson: true,
     },
     staged: {
-        "*.{js,ts,jsx,tsx,vue,svelte,json,jsonc,css,md}": "vp check --fix",
+        "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,vue,svelte,json,jsonc,json5,css,md}": [
+            "vp check --fix",
+            "vp test related --run --passWithNoTests",
+        ],
     },
 });
