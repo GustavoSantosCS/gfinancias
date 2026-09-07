@@ -1,16 +1,26 @@
 import { expect, test } from "@playwright/test";
 
-test("connects the home page to the API", async ({ page }) => {
+test("opens the monthly planning from the dashboard", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "API Status" })).toBeVisible();
-    await expect(page.getByText("Connected", { exact: true })).toBeVisible();
+
+    await expect(page.getByText("GFinanças", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Planejamento", exact: true }).click();
+
+    await expect(page.getByRole("heading", { name: /Planejamento de/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Criar fase" })).toBeVisible();
 });
 
-test("persists the selected theme after reloading", async ({ page }) => {
+test("persists the dark theme after reloading", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("button", { name: "Toggle theme" }).click();
-    await page.getByRole("menuitem", { name: "Dark", exact: true }).click();
+
     await expect(page.locator("html")).toHaveClass(/dark/);
+
+    await page.getByRole("button", { name: "Ativar modo claro" }).click();
+    await expect(page.locator("html")).not.toHaveClass(/dark/);
+
+    await page.getByRole("button", { name: "Ativar modo escuro" }).click();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+
     await page.reload();
     await expect(page.locator("html")).toHaveClass(/dark/);
 });

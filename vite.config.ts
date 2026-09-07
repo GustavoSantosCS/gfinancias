@@ -7,10 +7,10 @@ export default defineConfig({
         coverage: {
             provider: "v8",
             thresholds: {
-                statements: 1.87,
-                branches: 2.35,
-                functions: 2.12,
-                lines: 1.87,
+                statements: 60,
+                branches: 60,
+                functions: 60,
+                lines: 60,
             },
             reporter: ["text-summary", "html", "lcov", "json-summary"],
             include: ["apps/*/src/**/*.{ts,tsx,js,jsx}", "packages/*/src/**/*.{ts,tsx,js,jsx}"],
@@ -24,6 +24,7 @@ export default defineConfig({
                     environment: "node",
                     exclude: ["tests/e2e/**"],
                     include: ["tests/**/*.test.ts", "apps/**/*.test.ts", "packages/**/*.test.ts"],
+                    setupFiles: ["./tests/setup-node.ts"],
                 },
             },
             {
