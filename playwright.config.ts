@@ -19,7 +19,7 @@ export default defineConfig({
             url: "http://localhost:3000",
             reuseExistingServer: false,
             env: {
-                DATABASE_URL: "file:/tmp/gfinances-e2e.db",
+                DATABASE_URL: "file:../../.tmp/gfinancias-e2e.db",
                 CORS_ORIGIN: "http://localhost:3101",
             },
         },
