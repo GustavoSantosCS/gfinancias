@@ -23,7 +23,8 @@
         "db:migrate": "vp run --filter @gfinancias/db db:migrate",
         "db:local": "vp run --filter @gfinancias/db db:local",
         "test": "vp test run",
-        "prepare": "vp config --no-agent"
+        "prepare": "vp config --no-agent",
+        "test:components": "vp test run --project react"
     },
     "dependencies": {
         "@gfinancias/env": "*",
@@ -32,7 +33,12 @@
     },
     "devDependencies": {
         "@gfinancias/config": "*",
+        "@testing-library/dom": "^10.4.1",
+        "@testing-library/jest-dom": "^7.0.1",
+        "@testing-library/react": "^16.3.3",
+        "@testing-library/user-event": "^14.6.7",
         "@types/node": "^26.2.0",
+        "jsdom": "^29.1.1",
         "rolldown": "1.2.6",
         "typescript": "^6.0.3",
         "vite-plus": "0.3.0"
