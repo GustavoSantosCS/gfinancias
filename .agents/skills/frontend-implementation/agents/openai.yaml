@@ -1,0 +1,6 @@
+interface:
+  display_name: "GFinanças Frontend"
+  short_description: "Implement GFinanças frontend features"
+  default_prompt: "Use $frontend-implementation to implement this GFinanças frontend feature."
+policy:
+  allow_implicit_invocation: true
