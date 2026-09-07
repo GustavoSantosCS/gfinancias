@@ -18,6 +18,8 @@ jobs:
 
     env:
       DATABASE_URL: file:/tmp/gfinancias-ci.db
+      CORS_ORIGIN: http://localhost:3001
+      NEXT_PUBLIC_SERVER_URL: http://localhost:3000
 
     steps:
       - name: Checkout
