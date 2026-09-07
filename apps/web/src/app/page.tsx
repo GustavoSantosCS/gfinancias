@@ -25,6 +25,8 @@ import {
 import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { PlanningView } from "@/components/planning-view";
+
+import { PlanningPage } from "@/features/planning/planning-page";
 import { ReservesView } from "@/components/reserves-view";
 
 type View = "overview" | "planning" | "cards" | "goals" | "reserves";
@@ -261,7 +263,7 @@ function Progress({
     );
 }
 
-export default function Home() {
+function PrototypeHome() {
     const [view, setView] = useState<View>("overview");
     const [modal, setModal] = useState<ModalType>(null);
     const [dark, setDark] = useState(false);
@@ -1390,6 +1392,10 @@ function Cards({
             </section>
         </>
     );
+}
+
+export default function Home() {
+    return <PlanningPage />;
 }
 function Goals({ goals, onOpen }: { goals: Goal[]; onOpen: (modal: ModalType) => void }) {
     return (

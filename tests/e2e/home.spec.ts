@@ -3,10 +3,8 @@ import { expect, test } from "@playwright/test";
 test("opens the monthly planning from the dashboard", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByText("GFinanças", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "Planejamento", exact: true }).click();
-
     await expect(page.getByRole("heading", { name: /Planejamento de/i })).toBeVisible();
+
     await expect(page.getByRole("button", { name: "Criar fase" })).toBeVisible();
 });
 
