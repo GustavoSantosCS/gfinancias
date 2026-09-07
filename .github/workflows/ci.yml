@@ -16,6 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    env:
+      DATABASE_URL: file:/tmp/gfinancias-ci.db
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
