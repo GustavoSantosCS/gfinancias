@@ -1,0 +1,3 @@
+@import "@gfinancias/ui/globals.css";
+@source "./**/*.{ts,tsx}";
+@source "../packages/ui/stories/**/*.{ts,tsx}";

@@ -44,6 +44,7 @@ export default defineConfig({
     },
     lint: {
         ignorePatterns: [
+            "storybook-static/**",
             "node_modules/**",
             "**/node_modules/**",
             "apps/web/.next/**",
@@ -60,6 +61,7 @@ export default defineConfig({
     },
     fmt: {
         ignorePatterns: [
+            "storybook-static/**",
             "node_modules/**",
             "**/node_modules/**",
             "apps/web/.next/**",
