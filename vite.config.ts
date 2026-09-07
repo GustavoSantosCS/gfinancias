@@ -22,6 +22,7 @@ export default defineConfig({
                 test: {
                     name: "node",
                     environment: "node",
+                    exclude: ["tests/e2e/**"],
                     include: ["tests/**/*.test.ts", "apps/**/*.test.ts", "packages/**/*.test.ts"],
                 },
             },
@@ -30,6 +31,7 @@ export default defineConfig({
                 test: {
                     name: "react",
                     environment: "jsdom",
+                    exclude: ["tests/e2e/**"],
                     setupFiles: ["./tests/setup-react.ts"],
                     include: [
                         "tests/**/*.test.tsx",

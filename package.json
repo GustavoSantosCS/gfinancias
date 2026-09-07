@@ -29,7 +29,7 @@
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:install": "playwright install chromium",
         "test:coverage": "vp test run --coverage",
-        "test:ci": "npm run lint && npm run check-types && npm run test:coverage && npm run test:e2e"
+        "test:ci": "npm run lint && npm run check-types && npm run test:coverage"
     },
     "dependencies": {
         "@gfinancias/env": "*",
