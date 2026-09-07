@@ -31,7 +31,8 @@
         "test:coverage": "vp test run --coverage",
         "test:ci": "npm run lint && npm run check-types && npm run test:coverage",
         "storybook": "storybook dev -p 6006 --no-open",
-        "build-storybook": "storybook build"
+        "build-storybook": "storybook build",
+        "lint:format:source": "node scripts/lint-format-source.mjs"
     },
     "dependencies": {
         "@gfinancias/env": "*",
