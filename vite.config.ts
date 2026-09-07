@@ -4,6 +4,18 @@ export default defineConfig({
     oxc: { jsx: { runtime: "automatic" } },
     resolve: { alias: { "@": new URL("./apps/web/src", import.meta.url).pathname } },
     test: {
+        coverage: {
+            provider: "v8",
+            thresholds: {
+                statements: 1.87,
+                branches: 2.35,
+                functions: 2.12,
+                lines: 1.87,
+            },
+            reporter: ["text-summary", "html", "lcov", "json-summary"],
+            include: ["apps/*/src/**/*.{ts,tsx,js,jsx}", "packages/*/src/**/*.{ts,tsx,js,jsx}"],
+            exclude: ["**/*.d.ts", "**/*.{test,spec}.{ts,tsx,js,jsx}", "**/generated/**"],
+        },
         projects: [
             {
                 extends: true,
