@@ -1,9 +1,8 @@
 "use client";
 
 import { ArrowDownLeft, CalendarRange, Plus, ReceiptText, Scale } from "lucide-react";
-import { useEffect, useState } from "react";
 
-type PlanningPhase = { id: number; name: string; startDay: number; endDay: number };
+type PlanningPhase = { id: string | number; name: string; startDay: number; endDay: number };
 type IncomeCategory = "Salário" | "Reserva" | "Outros";
 type ExpenseCategory =
     | "Saídas fixas"
@@ -13,14 +12,14 @@ type ExpenseCategory =
     | "Investimentos";
 
 type Income = {
-    id: number;
+    id: string | number;
     name: string;
     amount: number;
     phase: string;
     category: IncomeCategory;
 };
 type Expense = {
-    id: number;
+    id: string | number;
     name: string;
     amount: number;
     phase: string;
@@ -38,35 +37,40 @@ const expenseCategories: ExpenseCategory[] = [
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 export function PlanningView({
+    activePhaseId,
     incomes,
     expenses,
     phases,
+    isLoading = false,
+    errorMessage,
     month,
     year,
     daysInMonth,
     onNewIncome,
     onNewExpense,
     onNewPhase,
+    onPhaseChange,
+    onEditIncome,
+    onEditExpense,
 }: {
+    activePhaseId: string | null;
     incomes: Income[];
     expenses: Expense[];
     phases: PlanningPhase[];
+    isLoading?: boolean;
+    errorMessage?: string | null;
     month: string;
     year: number;
     daysInMonth: number;
     onNewIncome: () => void;
     onNewExpense: () => void;
     onNewPhase: () => void;
+    onPhaseChange: (phaseId: string) => void;
+    onEditIncome: (income: Income) => void;
+    onEditExpense: (expense: Expense) => void;
 }) {
-    const [activePhase, setActivePhase] = useState(phases[0]?.name ?? "");
-
-    useEffect(() => {
-        if (!phases.some((phase) => phase.name === activePhase)) {
-            setActivePhase(phases[0]?.name ?? "");
-        }
-    }, [activePhase, phases]);
-
-    const selectedPhase = phases.find((phase) => phase.name === activePhase) ?? phases[0];
+    const selectedPhase = phases.find((phase) => String(phase.id) === activePhaseId) ?? phases[0];
+    const activePhase = selectedPhase?.name ?? "";
     const visibleIncomes = incomes.filter((item) => item.phase === activePhase);
     const visibleExpenses = expenses.filter((item) => item.phase === activePhase);
     const totalIncome = visibleIncomes.reduce((sum, item) => sum + item.amount, 0);
@@ -77,27 +81,71 @@ export function PlanningView({
         2,
         "0",
     );
+    const hasAvailableDays = Array.from({ length: daysInMonth }, (_, index) => index + 1).some(
+        (day) => !phases.some((phase) => phase.startDay <= day && phase.endDay >= day),
+    );
+    const disableCreatePhase = isLoading || !hasAvailableDays;
+
+    if (isLoading || errorMessage) {
+        return (
+            <>
+                <PlanningHeading
+                    disableCreatePhase={disableCreatePhase}
+                    month={month}
+                    onNewPhase={onNewPhase}
+                />
+                {isLoading ? (
+                    <section
+                        aria-label="Carregando planejamento"
+                        className="panel planning-loading"
+                        role="status"
+                    >
+                        <span aria-hidden="true" className="planning-spinner" />
+                    </section>
+                ) : (
+                    <section className="panel planning-error" role="alert">
+                        <p>Não foi possível carregar o planejamento: {errorMessage}</p>
+                    </section>
+                )}
+            </>
+        );
+    }
+
+    if (phases.length === 0) {
+        return (
+            <>
+                <PlanningHeading
+                    disableCreatePhase={disableCreatePhase}
+                    month={month}
+                    onNewPhase={onNewPhase}
+                />
+                <section className="panel planning-empty" role="status">
+                    <CalendarRange size={24} />
+                    <div>
+                        <h2>Nenhuma fase cadastrada</h2>
+                        <p>Crie a primeira fase para começar o planejamento deste mês.</p>
+                    </div>
+                </section>
+            </>
+        );
+    }
 
     return (
         <>
-            <section className="page-heading compact planning-heading">
-                <div>
-                    <span className="eyebrow">Plano do mês</span>
-                    <h1>Planejamento de {month.toLowerCase()}</h1>
-                    <p>Organize cada entrada e dê um destino ao dinheiro antes de gastar.</p>
-                </div>
-                <div className="heading-actions">
-                    <button className="secondary-button" onClick={onNewPhase} type="button">
-                        <Plus size={16} /> Criar fase
-                    </button>
+            <PlanningHeading
+                disableCreatePhase={disableCreatePhase}
+                month={month}
+                onNewPhase={onNewPhase}
+            >
+                <>
                     <button className="secondary-button" onClick={onNewExpense} type="button">
                         <Plus size={16} /> Nova saída
                     </button>
                     <button className="primary-button" onClick={onNewIncome} type="button">
                         <Plus size={16} /> Nova entrada
                     </button>
-                </div>
-            </section>
+                </>
+            </PlanningHeading>
 
             <section className="planning-summary" aria-label="Resumo da fase">
                 <div className="planning-summary__intro">
@@ -136,10 +184,10 @@ export function PlanningView({
                         String(phaseEnd).padStart(2, "0");
                     return (
                         <button
-                            aria-selected={activePhase === phase.name}
-                            className={activePhase === phase.name ? "active" : ""}
+                            aria-selected={String(phase.id) === activePhaseId}
+                            className={String(phase.id) === activePhaseId ? "active" : ""}
                             key={phase.id}
-                            onClick={() => setActivePhase(phase.name)}
+                            onClick={() => onPhaseChange(String(phase.id))}
                             role="tab"
                             type="button"
                         >
@@ -172,6 +220,7 @@ export function PlanningView({
                     categories={incomeCategories}
                     icon={<ArrowDownLeft size={18} />}
                     items={visibleIncomes}
+                    onEdit={onEditIncome}
                     title="Entradas"
                     tone="green"
                 />
@@ -179,11 +228,45 @@ export function PlanningView({
                     categories={expenseCategories}
                     icon={<ReceiptText size={18} />}
                     items={visibleExpenses}
+                    onEdit={onEditExpense}
                     title="Saídas e destinos"
                     tone="coral"
                 />
             </div>
         </>
+    );
+}
+
+function PlanningHeading({
+    children,
+    disableCreatePhase = false,
+    month,
+    onNewPhase,
+}: {
+    children?: React.ReactNode;
+    disableCreatePhase?: boolean;
+    month: string;
+    onNewPhase: () => void;
+}) {
+    return (
+        <section className="page-heading compact planning-heading">
+            <div>
+                <span className="eyebrow">Plano do mês</span>
+                <h1>Planejamento de {month.toLowerCase()}</h1>
+                <p>Organize cada entrada e dê um destino ao dinheiro antes de gastar.</p>
+            </div>
+            <div className="heading-actions">
+                <button
+                    className="secondary-button"
+                    disabled={disableCreatePhase}
+                    onClick={onNewPhase}
+                    type="button"
+                >
+                    <Plus size={16} /> Criar fase
+                </button>
+                {children}
+            </div>
+        </section>
     );
 }
 
@@ -209,16 +292,18 @@ function SummaryMetric({
     );
 }
 
-function CategoryList({
+function CategoryList<T extends Income | Expense>({
     categories,
     icon,
     items,
+    onEdit,
     title,
     tone,
 }: {
     categories: string[];
     icon: React.ReactNode;
-    items: Array<Income | Expense>;
+    items: T[];
+    onEdit: (item: T) => void;
     title: string;
     tone: "green" | "coral";
 }) {
@@ -248,16 +333,24 @@ function CategoryList({
                             </div>
                             {categoryItems.length ? (
                                 categoryItems.map((item) => (
-                                    <div className="item-row" key={item.id}>
+                                    <button
+                                        aria-label={"Editar " + item.name}
+                                        className="item-row item-row--editable"
+                                        key={item.id}
+                                        onClick={() => onEdit(item)}
+                                        type="button"
+                                    >
                                         <div>
                                             <strong>{item.name}</strong>
                                             <span>{category}</span>
                                         </div>
-                                        <b className={tone === "green" ? "positive" : ""}>
-                                            {tone === "green" ? "+ " : "− "}
-                                            {money.format(item.amount)}
-                                        </b>
-                                    </div>
+                                        <div className="item-row__actions">
+                                            <b className={tone === "green" ? "positive" : ""}>
+                                                {tone === "green" ? "+ " : "− "}
+                                                {money.format(item.amount)}
+                                            </b>
+                                        </div>
+                                    </button>
                                 ))
                             ) : (
                                 <div className="category-group__empty">Nenhum valor planejado</div>

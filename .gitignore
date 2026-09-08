@@ -3,3 +3,8 @@ playwright-report/
 test-results/
 coverage/
 storybook-static/
+
+# Local development and generated E2E artifacts
+local.db
+*.orig
+apps/web/.next-e2e-*/

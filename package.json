@@ -21,6 +21,7 @@
         "db:studio": "vp run --filter @gfinancias/db db:studio",
         "db:generate": "vp run --filter @gfinancias/db db:generate",
         "db:migrate": "vp run --filter @gfinancias/db db:migrate",
+        "db:migrate:deploy": "vp run --filter @gfinancias/db db:migrate:deploy",
         "db:local": "vp run --filter @gfinancias/db db:local",
         "test": "vp test run",
         "prepare": "vp config --no-agent",
