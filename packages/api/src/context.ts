@@ -1,7 +1,13 @@
 import db from "@gfinancias/db";
 import type { CreateFastifyContextOptions } from "@trpc/server/adapters/fastify";
 
-export async function createContext({ req }: CreateFastifyContextOptions) {
+type ContextResult = {
+    auth: null;
+    db: typeof db;
+    session: null;
+};
+
+export async function createContext({ req }: CreateFastifyContextOptions): Promise<ContextResult> {
     void req;
     return {
         auth: null,
