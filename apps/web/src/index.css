@@ -995,6 +995,21 @@ button {
 .transactions-panel {
   padding-bottom: 15px;
 }
+.transactions-panel .panel__header {
+  justify-content: center;
+}
+.transactions-panel__heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.transactions-panel__description {
+  margin: 4px 0 0;
+  color: var(--muted-text);
+  font-size: 10px;
+  line-height: 1.4;
+}
 .transactions-table {
   padding: 17px 22px;
 }
@@ -2038,4 +2053,91 @@ button {
     flex-direction: column;
     gap: 7px;
   }
+}
+
+.color-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.color-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.color-swatch {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+}
+.color-swatch[aria-pressed="true"] {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.color-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.color-picker-row input[type="color"] {
+  width: 43px;
+  flex: 0 0 43px;
+  padding: 4px;
+}
+.color-random {
+  flex: 1 1 auto;
+}
+
+.credit-card[role="button"] {
+  cursor: pointer;
+}
+.credit-card--selected {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+  transform: translateY(-2px);
+}
+.credit-card__edit {
+  position: absolute;
+  z-index: 2;
+  right: 16px;
+  bottom: 16px;
+  min-width: 32px;
+  color: white;
+  border-radius: 50%;
+  background: #00000014;
+  cursor: pointer;
+  transition: background 1s;
+}
+.credit-card__edit:hover {
+  background: #00000036;
+}
+.card-editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.primary-button.button--danger {
+  border-color: #b91c1c;
+  color: #fff;
+  background: #dc2626;
+  box-shadow: 0 8px 22px rgb(220 38 38 / 22%);
+}
+.primary-button.button--danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+.primary-button.button--warning {
+  border: 0;
+  color: #fff;
+  background: #ca8a04;
+  box-shadow: 0 8px 22px rgb(202 138 4 / 22%);
+}
+.primary-button.button--warning:hover:not(:disabled) {
+  background: #a16207;
 }

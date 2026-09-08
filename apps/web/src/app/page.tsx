@@ -15,8 +15,11 @@ import {
     Target,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Button } from "@gfinancias/ui/components/button";
+import { Input } from "@gfinancias/ui/components/input";
+import { Select } from "@gfinancias/ui/components/select";
 import { parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs";
-import { Suspense, type FormEvent, useEffect, useMemo, useState } from "react";
+import { Suspense, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { PlanningView } from "@/components/planning-view";
 import { Cards } from "@/features/overview/components/cards";
@@ -45,7 +48,7 @@ import { trpc } from "@/utils/trpc";
 const navigation = [
     { id: "overview" as const, label: "Visão geral", icon: LayoutDashboard },
     { id: "planning" as const, label: "Planejamento", icon: CalendarDays },
-    { id: "cards" as const, label: "Cartões", icon: CreditCard, unavailable: true },
+    { id: "cards" as const, label: "Cartões", icon: CreditCard },
     { id: "goals" as const, label: "Objetivos financeiros", icon: Target, unavailable: true },
     { id: "reserves" as const, label: "Reservas", icon: PiggyBank, unavailable: true },
 ];
@@ -104,7 +107,13 @@ function formValue(data: FormData, key: string) {
 function amount(value: string) {
     return Number(value.replace(",", ".")) || 0;
 }
-export function PrototypeHome({ initialView = "overview" }: { initialView?: View }) {
+export function PrototypeHome({
+    cardsContent,
+    initialView = "overview",
+}: {
+    cardsContent?: ReactNode;
+    initialView?: View;
+}) {
     const [view, setView] = useState<View>(initialView);
     const [modal, setModal] = useState<ModalType>(null);
     const [editingRecord, setEditingRecord] = useState<EditingRecord>(null);
@@ -219,6 +228,10 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
         return { income, bills, saving, flexible, allocated, available: income - allocated };
     }, [expenses, incomes]);
     const navigate = (next: View) => {
+        if (next === "cards") {
+            window.location.assign("/cards?month=" + month + "&year=" + year);
+            return;
+        }
         setView(next);
         setSidebarOpen(false);
     };
@@ -557,9 +570,10 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                             year={year}
                         />
                     )}
-                    {view === "cards" && (
-                        <Cards cards={cards} expenses={cardExpenses} onOpen={setModal} />
-                    )}
+                    {view === "cards" &&
+                        (cardsContent ?? (
+                            <Cards cards={cards} expenses={cardExpenses} onOpen={setModal} />
+                        ))}
                     {view === "goals" && <Goals goals={goals} onOpen={setModal} />}
                     {view === "reserves" && (
                         <ReservesView
@@ -576,7 +590,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                 >
                     <form className="form" onSubmit={editRecord}>
                         <Field htmlFor="edit-record-name" label="Nome">
-                            <input
+                            <Input
                                 autoFocus
                                 defaultValue={editingRecord.record.name}
                                 id="edit-record-name"
@@ -585,7 +599,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                             />
                         </Field>
                         <Field htmlFor="edit-record-category" label="Categoria">
-                            <select
+                            <Select
                                 defaultValue={editingRecord.record.category}
                                 id="edit-record-category"
                                 name="category"
@@ -605,10 +619,10 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                         <option>Investimentos</option>
                                     </>
                                 )}
-                            </select>
+                            </Select>
                         </Field>
                         <Field htmlFor="edit-record-amount" label="Valor">
-                            <input
+                            <Input
                                 defaultValue={editingRecord.record.amount}
                                 id="edit-record-amount"
                                 min="0.01"
@@ -637,7 +651,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                 <Modal onClose={() => setModal(null)} title="Nova entrada">
                     <form className="form" onSubmit={addIncome}>
                         <Field htmlFor="income-name" label="Nome">
-                            <input
+                            <Input
                                 autoFocus
                                 id="income-name"
                                 name="name"
@@ -646,7 +660,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                             />
                         </Field>
                         <Field htmlFor="income-category" label="Categoria">
-                            <select
+                            <Select
                                 id="income-category"
                                 name="category"
                                 onChange={(event) =>
@@ -657,12 +671,12 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 <option>Salário</option>
                                 <option>Reserva</option>
                                 <option>Outros</option>
-                            </select>
+                            </Select>
                         </Field>
                         {incomeCategory === "Reserva" && (
                             <div className="reserve-withdrawal">
                                 <Field htmlFor="income-reserve" label="Reserva">
-                                    <select
+                                    <Select
                                         id="income-reserve"
                                         name="reserve"
                                         onChange={(event) => setIncomeReserveId(event.target.value)}
@@ -674,7 +688,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                                 {reserve.name}
                                             </option>
                                         ))}
-                                    </select>
+                                    </Select>
                                 </Field>
                                 <div className="reserve-withdrawal__preview">
                                     <span>O valor será subtraído da Reserva</span>
@@ -688,7 +702,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                         )}
                         <div className="form__row">
                             <Field htmlFor="income-amount" label="Valor">
-                                <input
+                                <Input
                                     id="income-amount"
                                     min="0"
                                     name="amount"
@@ -701,7 +715,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 />
                             </Field>
                             <Field htmlFor="income-phase" label="Fase do mês">
-                                <select
+                                <Select
                                     defaultValue={String(phases[0]?.id ?? "")}
                                     id="income-phase"
                                     name="phase"
@@ -711,7 +725,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                             {phase.name}
                                         </option>
                                     ))}
-                                </select>
+                                </Select>
                             </Field>
                         </div>
                         <button
@@ -729,7 +743,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                 <Modal onClose={() => setModal(null)} title="Nova saída">
                     <form className="form" onSubmit={addExpense}>
                         <Field htmlFor="expense-name" label="Nome">
-                            <input
+                            <Input
                                 autoFocus
                                 id="expense-name"
                                 name="name"
@@ -738,7 +752,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                             />
                         </Field>
                         <Field htmlFor="expense-category" label="Categoria da saída">
-                            <select
+                            <Select
                                 id="expense-category"
                                 name="category"
                                 onChange={(event) =>
@@ -751,12 +765,12 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 <option>Saídas variadas</option>
                                 <option>Reserva</option>
                                 <option>Investimentos</option>
-                            </select>
+                            </Select>
                         </Field>
                         {expenseCategory === "Reserva" && (
                             <div className="reserve-withdrawal">
                                 <Field htmlFor="expense-reserve" label="Reserva">
-                                    <select
+                                    <Select
                                         id="expense-reserve"
                                         name="reserve"
                                         onChange={(event) =>
@@ -770,7 +784,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                                 {reserve.name}
                                             </option>
                                         ))}
-                                    </select>
+                                    </Select>
                                 </Field>
                                 <div className="reserve-withdrawal__preview">
                                     <span>O valor será somando a Reserva</span>
@@ -784,7 +798,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                         )}
                         <div className="form__row">
                             <Field htmlFor="expense-amount" label="Valor">
-                                <input
+                                <Input
                                     id="expense-amount"
                                     min="0"
                                     name="amount"
@@ -797,7 +811,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 />
                             </Field>
                             <Field htmlFor="expense-phase" label="Fase do mês">
-                                <select
+                                <Select
                                     defaultValue={String(phases[0]?.id ?? "")}
                                     id="expense-phase"
                                     name="phase"
@@ -807,7 +821,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                             {phase.name}
                                         </option>
                                     ))}
-                                </select>
+                                </Select>
                             </Field>
                         </div>
                         <button
@@ -825,7 +839,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                 <Modal onClose={() => setModal(null)} title="Gasto no cartão">
                     <form className="form" onSubmit={addCardExpense}>
                         <Field htmlFor="card-description" label="Descrição">
-                            <input
+                            <Input
                                 autoFocus
                                 id="card-description"
                                 name="description"
@@ -835,7 +849,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                         </Field>
                         <div className="form__row">
                             <Field htmlFor="card-amount" label="Valor">
-                                <input
+                                <Input
                                     id="card-amount"
                                     min="0"
                                     name="amount"
@@ -848,15 +862,15 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 />
                             </Field>
                             <Field htmlFor="card-name" label="Cartão">
-                                <select defaultValue={cards[0]?.name} id="card-name" name="card">
+                                <Select defaultValue={cards[0]?.name} id="card-name" name="card">
                                     {cards.map((card) => (
                                         <option key={card.id}>{card.name}</option>
                                     ))}
-                                </select>
+                                </Select>
                             </Field>
                         </div>
                         <Field htmlFor="card-installments" label="Forma de pagamento">
-                            <select
+                            <Select
                                 id="card-installments"
                                 name="installments"
                                 onChange={(event) => setCardInstallments(event.target.value)}
@@ -870,7 +884,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                         </option>
                                     ),
                                 )}
-                            </select>
+                            </Select>
                         </Field>
                         {installmentCount > 1 && (
                             <div className="installment-summary">
@@ -881,9 +895,9 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 </strong>
                             </div>
                         )}
-                        <button className="primary-button form__submit" type="submit">
+                        <Button className="form__submit" type="submit" variant="primary">
                             Adicionar gasto
-                        </button>
+                        </Button>
                     </form>
                 </Modal>
             )}
@@ -891,7 +905,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                 <Modal onClose={() => setModal(null)} title="Novo cartão">
                     <form className="form" onSubmit={addCard}>
                         <Field htmlFor="new-card-name" label="Nome do cartão">
-                            <input
+                            <Input
                                 autoFocus
                                 id="new-card-name"
                                 name="name"
@@ -901,7 +915,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                         </Field>
                         <div className="form__row">
                             <Field htmlFor="new-card-limit" label="Limite">
-                                <input
+                                <Input
                                     id="new-card-limit"
                                     min="0"
                                     name="limit"
@@ -912,7 +926,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 />
                             </Field>
                             <Field htmlFor="new-card-due" label="Dia do vencimento">
-                                <input
+                                <Input
                                     id="new-card-due"
                                     max="31"
                                     min="1"
@@ -925,7 +939,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                         </div>
                         <div className="form__row">
                             <Field htmlFor="new-card-digits" label="Últimos 4 dígitos">
-                                <input
+                                <Input
                                     id="new-card-digits"
                                     inputMode="numeric"
                                     maxLength={4}
@@ -937,15 +951,15 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 />
                             </Field>
                             <Field htmlFor="new-card-color" label="Cor">
-                                <select defaultValue="purple" id="new-card-color" name="color">
+                                <Select defaultValue="purple" id="new-card-color" name="color">
                                     <option value="purple">Roxo</option>
                                     <option value="orange">Laranja</option>
-                                </select>
+                                </Select>
                             </Field>
                         </div>
-                        <button className="primary-button form__submit" type="submit">
+                        <Button className="form__submit" type="submit" variant="primary">
                             Criar cartão
-                        </button>
+                        </Button>
                     </form>
                 </Modal>
             )}
@@ -953,7 +967,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                 <Modal onClose={() => setModal(null)} title="Nova fase">
                     <form className="form" onSubmit={addPhase}>
                         <Field htmlFor="phase-name" label="Nome da fase">
-                            <input
+                            <Input
                                 autoFocus
                                 defaultValue={`${phases.length + 1}ª fase`}
                                 id="phase-name"
@@ -963,7 +977,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                         </Field>
                         <div className="form__row">
                             <Field htmlFor="phase-start" label="Começa no dia">
-                                <input
+                                <Input
                                     id="phase-start"
                                     max="31"
                                     min="1"
@@ -973,7 +987,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 />
                             </Field>
                             <Field htmlFor="phase-end" label="Termina no dia">
-                                <input
+                                <Input
                                     id="phase-end"
                                     max={new Date(year, monthIndex + 1, 0).getDate()}
                                     min="1"
@@ -1000,7 +1014,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                 <Modal onClose={() => setModal(null)} title="Novo objetivo">
                     <form className="form" onSubmit={addGoal}>
                         <Field htmlFor="goal-name" label="Nome">
-                            <input
+                            <Input
                                 autoFocus
                                 id="goal-name"
                                 name="name"
@@ -1010,7 +1024,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                         </Field>
                         <div className="form__row">
                             <Field htmlFor="goal-target" label="Valor alvo">
-                                <input
+                                <Input
                                     id="goal-target"
                                     min="0"
                                     name="target"
@@ -1021,7 +1035,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 />
                             </Field>
                             <Field htmlFor="goal-saved" label="Valor já guardado">
-                                <input
+                                <Input
                                     defaultValue="0"
                                     id="goal-saved"
                                     min="0"
@@ -1033,11 +1047,11 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                             </Field>
                         </div>
                         <Field htmlFor="goal-deadline" label="Prazo">
-                            <input id="goal-deadline" name="deadline" placeholder="Ex.: Dez 2027" />
+                            <Input id="goal-deadline" name="deadline" placeholder="Ex.: Dez 2027" />
                         </Field>
-                        <button className="primary-button form__submit" type="submit">
+                        <Button className="form__submit" type="submit" variant="primary">
                             Criar objetivo
-                        </button>
+                        </Button>
                     </form>
                 </Modal>
             )}
@@ -1045,7 +1059,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                 <Modal onClose={() => setModal(null)} title="Nova reserva">
                     <form className="form" onSubmit={addReserve}>
                         <Field htmlFor="reserve-name" label="Conta futura">
-                            <input
+                            <Input
                                 autoFocus
                                 id="reserve-name"
                                 name="name"
@@ -1055,7 +1069,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                         </Field>
                         <div className="form__row">
                             <Field htmlFor="reserve-target" label="Valor necessário">
-                                <input
+                                <Input
                                     id="reserve-target"
                                     min="0"
                                     name="target"
@@ -1066,7 +1080,7 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                                 />
                             </Field>
                             <Field htmlFor="reserve-saved" label="Já reservado">
-                                <input
+                                <Input
                                     defaultValue="0"
                                     id="reserve-saved"
                                     min="0"
@@ -1078,11 +1092,11 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
                             </Field>
                         </div>
                         <Field htmlFor="reserve-due" label="Quando será pago">
-                            <input id="reserve-due" name="due" placeholder="Ex.: Mar 2027" />
+                            <Input id="reserve-due" name="due" placeholder="Ex.: Mar 2027" />
                         </Field>
-                        <button className="primary-button form__submit" type="submit">
+                        <Button className="form__submit" type="submit" variant="primary">
                             Criar reserva
-                        </button>
+                        </Button>
                     </form>
                 </Modal>
             )}

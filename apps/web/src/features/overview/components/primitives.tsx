@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { X } from "lucide-react";
+import { InputLabel } from "@gfinancias/ui/components/input-label";
+import { Label } from "@gfinancias/ui/components/label";
 
 export function Modal({
     title,
@@ -52,10 +54,10 @@ export function Field({
     htmlFor: string;
 }) {
     return (
-        <label className="field" htmlFor={htmlFor}>
-            <span>{label}</span>
+        <Label className="grid gap-[7px]" htmlFor={htmlFor}>
+            <InputLabel>{label}</InputLabel>
             {children}
-        </label>
+        </Label>
     );
 }
 export function Progress({

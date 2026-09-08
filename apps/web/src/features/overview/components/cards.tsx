@@ -1,4 +1,6 @@
 import { CreditCard, Plus, WalletCards } from "lucide-react";
+import { Button } from "@gfinancias/ui/components/button";
+
 import { Progress } from "./primitives";
 import type { CreditCardAccount, CardExpense, ModalType } from "../types";
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -21,22 +23,14 @@ export function Cards({
                     <p>Veja o peso de cada compra antes da fatura fechar.</p>
                 </div>
                 <div className="heading-actions">
-                    <button
-                        className="secondary-button"
-                        onClick={() => onOpen("newCard")}
-                        type="button"
-                    >
+                    <Button onClick={() => onOpen("newCard")} type="button" variant="default">
                         <Plus size={16} />
                         Criar cartão
-                    </button>
-                    <button
-                        className="primary-button"
-                        onClick={() => onOpen("cardExpense")}
-                        type="button"
-                    >
+                    </Button>
+                    <Button onClick={() => onOpen("cardExpense")} type="button" variant="primary">
                         <Plus size={16} />
                         Adicionar gasto
-                    </button>
+                    </Button>
                 </div>
             </section>
             <div className="cards-grid">
@@ -73,14 +67,10 @@ export function Cards({
                         <span className="eyebrow">Detalhamento</span>
                         <h2>Compras planejadas</h2>
                     </div>
-                    <button
-                        className="secondary-button"
-                        onClick={() => onOpen("cardExpense")}
-                        type="button"
-                    >
+                    <Button onClick={() => onOpen("cardExpense")} type="button" variant="default">
                         <Plus size={15} />
                         Adicionar gasto
-                    </button>
+                    </Button>
                 </div>
                 <div className="transactions-table">
                     <div className="transactions-table__head">
