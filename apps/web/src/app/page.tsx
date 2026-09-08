@@ -228,8 +228,8 @@ export function PrototypeHome({
         return { income, bills, saving, flexible, allocated, available: income - allocated };
     }, [expenses, incomes]);
     const navigate = (next: View) => {
-        if (next === "cards") {
-            window.location.assign("/cards?month=" + month + "&year=" + year);
+        if (next === "cards" || next === "planning") {
+            window.location.assign("/" + next + "?month=" + month + "&year=" + year);
             return;
         }
         setView(next);

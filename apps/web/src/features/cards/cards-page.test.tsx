@@ -113,13 +113,21 @@ it("shows monthly entries and opens the purchase form for active cards", async (
     ).toContain("transactions-panel__heading");
     expect(
         screen.getByRole("heading", { name: "Detalhamento" }).parentElement?.className,
-    ).toContain("text-center");
+    ).not.toContain("text-center");
     expect(screen.getByRole("heading", { name: "Detalhamento" })).toBeTruthy();
-    expect(screen.getByText("Compras da competência").className).toContain(
-        "transactions-panel__description",
-    );
+    expect(screen.queryByText("Compras da competência")).toBeNull();
+    expect(screen.getByPlaceholderText("Pesquisar...")).toBeTruthy();
+    expect(screen.getByRole("combobox", { name: "Estado" })).toBeTruthy();
     expect(screen.getByText("Curso")).toBeTruthy();
     expect(screen.getByText("2/3")).toBeTruthy();
+    await user.type(screen.getByPlaceholderText("Pesquisar..."), "curso");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Estado" }), "ARCHIVED");
+    expect(useQuery).toHaveBeenLastCalledWith({
+        description: "curso",
+        month: 9,
+        status: "ARCHIVED",
+        year: 2028,
+    });
     await user.click(screen.getByRole("button", { name: /Nova compra/ }));
     expect(screen.getByRole("dialog", { name: "Nova compra" })).toBeTruthy();
     expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Descrição" }));

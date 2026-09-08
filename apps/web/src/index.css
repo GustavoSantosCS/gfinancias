@@ -992,23 +992,46 @@ button {
   z-index: 1;
   background: rgb(255 255 255 / 15%);
 }
+.transactions-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding: 14px;
+}
+.transactions-filters__search {
+  position: relative;
+  width: 60%;
+}
+.transactions-filters__search .modal-input {
+  padding-right: 46px;
+}
+.transactions-filters__search-icon {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--muted-text);
+  pointer-events: none;
+}
+.transactions-filters__state {
+  flex: 0 0 135px;
+  width: 135px;
+}
 .transactions-panel {
   padding-bottom: 15px;
 }
 .transactions-panel .panel__header {
-  justify-content: center;
+  justify-content: flex-start;
 }
 .transactions-panel__heading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-}
-.transactions-panel__description {
-  margin: 4px 0 0;
-  color: var(--muted-text);
-  font-size: 10px;
-  line-height: 1.4;
+  text-align: left;
 }
 .transactions-table {
   padding: 17px 22px;

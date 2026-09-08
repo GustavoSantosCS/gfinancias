@@ -19,3 +19,11 @@ test("creates a card and a planned purchase", async ({ page }) => {
     await expect(page.getByText("Passagem", { exact: true })).toBeVisible();
     await expect(page.getByText("À vista", { exact: true })).toBeVisible();
 });
+
+test("navigates from cards to monthly planning through the sidebar", async ({ page }) => {
+    await page.goto("/cards?month=9&year=2028");
+
+    await page.getByRole("button", { name: "Planejamento", exact: true }).click();
+
+    await expect(page).toHaveURL("/planning?month=9&year=2028");
+});

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Archive, CreditCard, Pencil, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, CreditCard, Pencil, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -95,10 +95,17 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
     const [showPurchaseForm, setShowPurchaseForm] = useState(false);
     const [editingCard, setEditingCard] = useState<EditableCard | null>(null);
     const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
+    const [purchaseDescription, setPurchaseDescription] = useState("");
+    const [purchaseStatus, setPurchaseStatus] = useState<"ALL" | "ACTIVE" | "ARCHIVED">("ALL");
 
     const cardsQuery = useQuery(trpc.cards.list.queryOptions({ includeArchived }));
     const purchasesQuery = useQuery(
-        trpc.cards.listPurchases.queryOptions({ month, status: "ALL", year }),
+        trpc.cards.listPurchases.queryOptions({
+            ...(purchaseDescription ? { description: purchaseDescription } : {}),
+            month,
+            status: purchaseStatus,
+            year,
+        }),
     );
     const createCard = useMutation(trpc.cards.create.mutationOptions());
     const createPurchase = useMutation(trpc.cards.createPurchase.mutationOptions());
@@ -353,13 +360,40 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                 )}
 
                 {cards.length > 0 && (
+                    <section aria-label="Filtros de compras" className="panel transactions-filters">
+                        <div className="transactions-filters__search">
+                            <Input
+                                aria-label="Filtrar por descrição"
+                                onChange={(event) => setPurchaseDescription(event.target.value)}
+                                placeholder="Pesquisar..."
+                                value={purchaseDescription}
+                            />
+                            <span aria-hidden="true" className="transactions-filters__search-icon">
+                                <Search size={15} />
+                            </span>
+                        </div>
+                        <Select
+                            aria-label="Estado"
+                            className="transactions-filters__state"
+                            onChange={(event) =>
+                                setPurchaseStatus(
+                                    event.target.value as "ALL" | "ACTIVE" | "ARCHIVED",
+                                )
+                            }
+                            value={purchaseStatus}
+                        >
+                            <option value="ALL">Todos os estados</option>
+                            <option value="ACTIVE">Ativos</option>
+                            <option value="ARCHIVED">Arquivados</option>
+                        </Select>
+                    </section>
+                )}
+
+                {cards.length > 0 && (
                     <section className="panel transactions-panel">
                         <div className="panel__header">
-                            <div className="transactions-panel__heading text-center">
+                            <div className="transactions-panel__heading">
                                 <h2>Detalhamento</h2>
-                                <p className="transactions-panel__description">
-                                    Compras da competência
-                                </p>
                             </div>
                         </div>
                         {purchases.length ? (
