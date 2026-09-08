@@ -1,80 +1,46 @@
 "use client";
 
 import {
-    ArrowDownLeft,
-    ArrowUpRight,
     Bell,
     CalendarDays,
     ChevronLeft,
     ChevronRight,
-    CircleDollarSign,
     CreditCard,
-    Flag,
     LayoutDashboard,
     Menu,
     Moon,
     MoreHorizontal,
     PiggyBank,
-    Plus,
-    ReceiptText,
     Sun,
     Target,
-    WalletCards,
-    X,
 } from "lucide-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs";
-import { Suspense, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import { Suspense, type FormEvent, useEffect, useMemo, useState } from "react";
 
 import { PlanningView } from "@/components/planning-view";
+import { Cards } from "@/features/overview/components/cards";
+import { Goals } from "@/features/overview/components/goals";
+import { Overview } from "@/features/overview/components/overview";
+import { Field, Modal } from "@/features/overview/components/primitives";
+import type {
+    CreditCardAccount,
+    CardExpense,
+    EditingRecord,
+    Expense,
+    ExpenseCategory,
+    Goal,
+    Income,
+    IncomeCategory,
+    ModalType,
+    PlanningPhase,
+    Reserve,
+    View,
+} from "@/features/overview/types";
 
 import { ReservesView } from "@/components/reserves-view";
 import { translatePlanningError } from "@/features/planning/utils/api-errors";
 import { trpc } from "@/utils/trpc";
-
-type View = "overview" | "planning" | "cards" | "goals" | "reserves";
-type ModalType =
-    | "income"
-    | "expense"
-    | "cardExpense"
-    | "newCard"
-    | "phase"
-    | "goal"
-    | "reserve"
-    | null;
-type Phase = string;
-type PlanningPhase = { id: string | number; name: string; startDay: number; endDay: number };
-type CreditCardAccount = {
-    id: number;
-    name: string;
-    color: "purple" | "orange";
-    limit: number;
-    dueDay: number;
-    lastDigits: string;
-};
-type IncomeCategory = "Salário" | "Reserva" | "Outros";
-type ExpenseCategory =
-    | "Saídas fixas"
-    | "Saídas fixas com valores variáveis"
-    | "Saídas variadas"
-    | "Reserva"
-    | "Investimentos";
-type PlannedItem = { id: string | number; name: string; amount: number; phase: Phase };
-type Income = PlannedItem & { category: IncomeCategory };
-type Expense = PlannedItem & { category: ExpenseCategory };
-type EditingRecord =
-    | { kind: "income"; record: Income }
-    | { kind: "expense"; record: Expense }
-    | null;
-type CardExpense = {
-    id: number;
-    description: string;
-    amount: number;
-    card: string;
-    installments: number;
-};
-type Goal = { id: number; name: string; target: number; saved: number; deadline: string };
-type Reserve = { id: number; name: string; target: number; saved: number; due: string };
 
 const navigation = [
     { id: "overview" as const, label: "Visão geral", icon: LayoutDashboard },
@@ -138,78 +104,6 @@ function formValue(data: FormData, key: string) {
 function amount(value: string) {
     return Number(value.replace(",", ".")) || 0;
 }
-function Modal({
-    title,
-    children,
-    onClose,
-}: {
-    title: string;
-    children: ReactNode;
-    onClose: () => void;
-}) {
-    useEffect(() => {
-        const close = (event: KeyboardEvent) => event.key === "Escape" && onClose();
-        window.addEventListener("keydown", close);
-        return () => window.removeEventListener("keydown", close);
-    }, [onClose]);
-    return (
-        <div
-            className="modal-backdrop"
-            onMouseDown={(event) => event.target === event.currentTarget && onClose()}
-        >
-            <section aria-label={title} aria-modal="true" className="modal" role="dialog">
-                <div className="modal__header">
-                    <div>
-                        <span className="eyebrow">Planejamento mensal</span>
-                        <h2>{title}</h2>
-                    </div>
-                    <button
-                        aria-label="Fechar"
-                        className="icon-button"
-                        onClick={onClose}
-                        type="button"
-                    >
-                        <X size={18} />
-                    </button>
-                </div>
-                {children}
-            </section>
-        </div>
-    );
-}
-function Field({
-    children,
-    label,
-    htmlFor,
-}: {
-    children: ReactNode;
-    label: string;
-    htmlFor: string;
-}) {
-    return (
-        <label className="field" htmlFor={htmlFor}>
-            <span>{label}</span>
-            {children}
-        </label>
-    );
-}
-function Progress({
-    value,
-    tone = "green",
-}: {
-    value: number;
-    tone?: "green" | "violet" | "coral";
-}) {
-    return (
-        <div aria-label={Math.round(value) + "% concluído"} className="progress">
-            <span
-                className={"progress__fill progress__fill--" + tone}
-                style={{ width: Math.min(value, 100) + "%" }}
-            />
-        </div>
-    );
-}
-
 export function PrototypeHome({ initialView = "overview" }: { initialView?: View }) {
     const [view, setView] = useState<View>(initialView);
     const [modal, setModal] = useState<ModalType>(null);
@@ -1196,400 +1090,10 @@ export function PrototypeHome({ initialView = "overview" }: { initialView?: View
     );
 }
 
-function Overview({
-    totals,
-    onOpen,
-    onNavigate,
-    goals,
-    incomes,
-    phases,
-}: {
-    totals: {
-        income: number;
-        bills: number;
-        saving: number;
-        flexible: number;
-        allocated: number;
-        available: number;
-    };
-    onOpen: (modal: ModalType) => void;
-    onNavigate: (view: View) => void;
-    goals: Goal[];
-    incomes: Income[];
-    phases: PlanningPhase[];
-}) {
-    const phaseSummaries = phases.map((phase) => {
-        const income = incomes
-            .filter((item) => item.phase === phase.name)
-            .reduce((sum, item) => sum + item.amount, 0);
-        return { income, name: phase.name };
-    });
-    const allocation = [
-        { label: "Contas e compromissos", value: totals.bills, color: "violet" },
-        { label: "Vida e gastos flexíveis", value: totals.flexible, color: "coral" },
-        { label: "Guardar e investir", value: totals.saving, color: "green" },
-    ];
-    return (
-        <>
-            <section className="page-heading">
-                <div>
-                    <span className="eyebrow">Mês sob controle</span>
-                    <h1>Seu dinheiro, antes dele ir embora.</h1>
-                    <p>Decida o destino de cada valor e atravesse o mês com tranquilidade.</p>
-                </div>
-                <button
-                    className="secondary-button"
-                    onClick={() => onNavigate("planning")}
-                    type="button"
-                >
-                    Ver plano completo <ArrowUpRight size={16} />
-                </button>
-            </section>
-            <section className="hero-card">
-                <div className="hero-card__main">
-                    <span className="hero-card__label">Disponível para planejar</span>
-                    <strong>{money.format(totals.available)}</strong>
-                    <div className="hero-card__status">
-                        <span />
-                        Quase tudo tem um destino
-                    </div>
-                </div>
-                <div className="hero-card__summary">
-                    <div>
-                        <span>Entradas previstas</span>
-                        <strong>{money.format(totals.income)}</strong>
-                        <small>
-                            <ArrowDownLeft size={13} /> valores cadastrados no planejamento
-                        </small>
-                    </div>
-                    <div>
-                        <span>Já planejado</span>
-                        <strong>{money.format(totals.allocated)}</strong>
-                        <small>
-                            <ArrowUpRight size={13} /> 99,7% das entradas
-                        </small>
-                    </div>
-                </div>
-                <div className="hero-orbit">
-                    <span>{Math.round((totals.allocated / totals.income) * 100)}%</span>
-                    <small>planejado</small>
-                </div>
-            </section>
-            <section className="quick-actions" aria-label="Ações rápidas">
-                <button onClick={() => onOpen("income")} type="button">
-                    <span className="quick-actions__icon quick-actions__icon--green">
-                        <ArrowDownLeft size={19} />
-                    </span>
-                    <span>
-                        <strong>Nova entrada</strong>
-                        <small>Dinheiro que vai chegar</small>
-                    </span>
-                    <Plus size={17} />
-                </button>
-                <button onClick={() => onOpen("expense")} type="button">
-                    <span className="quick-actions__icon quick-actions__icon--coral">
-                        <ReceiptText size={19} />
-                    </span>
-                    <span>
-                        <strong>Nova saída</strong>
-                        <small>Conta fixa ou variável</small>
-                    </span>
-                    <Plus size={17} />
-                </button>
-                <button onClick={() => onOpen("cardExpense")} type="button">
-                    <span className="quick-actions__icon quick-actions__icon--violet">
-                        <CreditCard size={19} />
-                    </span>
-                    <span>
-                        <strong>Gasto no cartão</strong>
-                        <small>Planeje a próxima fatura</small>
-                    </span>
-                    <Plus size={17} />
-                </button>
-            </section>
-            <div className="dashboard-grid">
-                <section className="panel allocation-panel">
-                    <div className="panel__header">
-                        <div>
-                            <span className="eyebrow">Mapa do dinheiro</span>
-                            <h2>Como o mês foi dividido</h2>
-                        </div>
-                        <button aria-label="Mais opções" className="icon-button" type="button">
-                            <MoreHorizontal size={18} />
-                        </button>
-                    </div>
-                    <div className="allocation-chart">
-                        <div className="donut">
-                            <div>
-                                <strong>{money.format(totals.allocated)}</strong>
-                                <span>planejados</span>
-                            </div>
-                        </div>
-                        <div className="legend">
-                            {allocation.map((item) => (
-                                <div key={item.label}>
-                                    <span className={"legend__dot legend__dot--" + item.color} />
-                                    <p>
-                                        <span>{item.label}</span>
-                                        <strong>{money.format(item.value)}</strong>
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-                <section className="panel phases-panel">
-                    <div className="panel__header">
-                        <div>
-                            <span className="eyebrow">Ritmo do mês</span>
-                            <h2>Planejamento por fase</h2>
-                        </div>
-                        <button
-                            className="text-button"
-                            onClick={() => onNavigate("planning")}
-                            type="button"
-                        >
-                            Detalhes <ChevronRight size={15} />
-                        </button>
-                    </div>
-                    <div className="phase-bars">
-                        {phaseSummaries.length === 0 && (
-                            <p>Nenhuma fase cadastrada para este mês.</p>
-                        )}
-                        {phaseSummaries.map((phase) => (
-                            <div className="phase-row" key={phase.name}>
-                                <div>
-                                    <strong>{phase.name}</strong>
-                                    <span>Entram {money.format(phase.income)}</span>
-                                </div>
-                                <div className="phase-row__bar">
-                                    <span />
-                                </div>
-                                <b>{money.format(phase.income)}</b>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="phase-note">
-                        <CircleDollarSign size={18} />
-                        <p>
-                            <strong>Bom trabalho.</strong> Só falta decidir o destino de{" "}
-                            {money.format(totals.available)}.
-                        </p>
-                    </div>
-                </section>
-                <section className="panel goals-preview">
-                    <div className="panel__header">
-                        <div>
-                            <span className="eyebrow">O que vem depois</span>
-                            <h2>Objetivos em movimento</h2>
-                        </div>
-                        <button
-                            className="text-button"
-                            onClick={() => onNavigate("goals")}
-                            type="button"
-                        >
-                            Ver todos <ChevronRight size={15} />
-                        </button>
-                    </div>
-                    {goals.slice(0, 2).map((goal, index) => {
-                        const percent = (goal.saved / goal.target) * 100;
-                        return (
-                            <div className="goal-line" key={goal.id}>
-                                <div
-                                    className={
-                                        "goal-line__icon goal-line__icon--" +
-                                        (index ? "violet" : "green")
-                                    }
-                                >
-                                    <Flag size={18} />
-                                </div>
-                                <div>
-                                    <div>
-                                        <strong>{goal.name}</strong>
-                                        <span>{Math.round(percent)}%</span>
-                                    </div>
-                                    <Progress tone={index ? "violet" : "green"} value={percent} />
-                                    <small>
-                                        {money.format(goal.saved)} de {money.format(goal.target)}
-                                    </small>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </section>
-            </div>
-        </>
-    );
-}
-function Cards({
-    cards,
-    expenses,
-    onOpen,
-}: {
-    cards: CreditCardAccount[];
-    expenses: CardExpense[];
-    onOpen: (modal: ModalType) => void;
-}) {
-    return (
-        <>
-            <section className="page-heading compact">
-                <div>
-                    <span className="eyebrow">Próximas faturas</span>
-                    <h1>Cartões planejados</h1>
-                    <p>Veja o peso de cada compra antes da fatura fechar.</p>
-                </div>
-                <div className="heading-actions">
-                    <button
-                        className="secondary-button"
-                        onClick={() => onOpen("newCard")}
-                        type="button"
-                    >
-                        <Plus size={16} />
-                        Criar cartão
-                    </button>
-                    <button
-                        className="primary-button"
-                        onClick={() => onOpen("cardExpense")}
-                        type="button"
-                    >
-                        <Plus size={16} />
-                        Adicionar gasto
-                    </button>
-                </div>
-            </section>
-            <div className="cards-grid">
-                {cards.map((card) => {
-                    const total = expenses
-                        .filter((item) => item.card === card.name)
-                        .reduce((sum, item) => sum + item.amount, 0);
-                    return (
-                        <article
-                            className={"credit-card credit-card--" + card.color}
-                            key={card.name}
-                        >
-                            <div>
-                                <span>GFINANÇAS</span>
-                                <CreditCard size={22} />
-                            </div>
-                            <strong>{money.format(total)}</strong>
-                            <small>fatura prevista</small>
-                            <div className="credit-card__footer">
-                                <span>•••• {card.lastDigits}</span>
-                                <span>Vence dia {String(card.dueDay).padStart(2, "0")}</span>
-                            </div>
-                            <Progress
-                                tone={card.color === "purple" ? "violet" : "coral"}
-                                value={(total / card.limit) * 100}
-                            />
-                        </article>
-                    );
-                })}
-            </div>
-            <section className="panel transactions-panel">
-                <div className="panel__header">
-                    <div>
-                        <span className="eyebrow">Detalhamento</span>
-                        <h2>Compras planejadas</h2>
-                    </div>
-                    <button
-                        className="secondary-button"
-                        onClick={() => onOpen("cardExpense")}
-                        type="button"
-                    >
-                        <Plus size={15} />
-                        Adicionar gasto
-                    </button>
-                </div>
-                <div className="transactions-table">
-                    <div className="transactions-table__head">
-                        <span>Descrição</span>
-                        <span>Cartão</span>
-                        <span>Valor</span>
-                    </div>
-                    {expenses.map((item) => (
-                        <div className="transactions-table__row" key={item.id}>
-                            <span>
-                                <span className="merchant-icon">
-                                    <WalletCards size={16} />
-                                </span>
-                                <span className="transaction-copy">
-                                    <span>{item.description}</span>
-                                    <small>
-                                        {item.installments === 1
-                                            ? "À vista"
-                                            : item.installments +
-                                              "x de " +
-                                              money.format(item.amount / item.installments)}
-                                    </small>
-                                </span>
-                            </span>
-                            <span>
-                                <i
-                                    className={item.card === "Nubank" ? "purple-dot" : "orange-dot"}
-                                />
-                                {item.card}
-                            </span>
-                            <strong>{money.format(item.amount)}</strong>
-                        </div>
-                    ))}
-                </div>
-            </section>
-        </>
-    );
-}
-
 export default function Home() {
     return (
         <Suspense fallback={null}>
             <PrototypeHome />
         </Suspense>
-    );
-}
-function Goals({ goals, onOpen }: { goals: Goal[]; onOpen: (modal: ModalType) => void }) {
-    return (
-        <>
-            <section className="page-heading compact">
-                <div>
-                    <span className="eyebrow">Construção de patrimônio</span>
-                    <h1>Objetivos financeiros</h1>
-                    <p>Defina metas maiores e acompanhe quanto falta para cada conquista.</p>
-                </div>
-                <button className="primary-button" onClick={() => onOpen("goal")} type="button">
-                    <Plus size={16} /> Novo objetivo
-                </button>
-            </section>
-            <div className="goals-grid">
-                {goals.map((goal, index) => {
-                    const percentage = (goal.saved / goal.target) * 100;
-                    return (
-                        <article className="goal-card" key={goal.id}>
-                            <div className={"goal-card__top goal-card__top--" + (index % 3)}>
-                                <div className="goal-card__icon">
-                                    <Target size={21} />
-                                </div>
-                                <span>{goal.deadline}</span>
-                            </div>
-                            <h2>{goal.name}</h2>
-                            <div className="goal-card__amount">
-                                <strong>{money.format(goal.saved)}</strong>
-                                <span>de {money.format(goal.target)}</span>
-                            </div>
-                            <Progress tone={index % 2 ? "violet" : "green"} value={percentage} />
-                            <div className="goal-card__footer">
-                                <span>{Math.round(percentage)}% concluído</span>
-                                <b>Faltam {money.format(Math.max(goal.target - goal.saved, 0))}</b>
-                            </div>
-                        </article>
-                    );
-                })}
-                <button className="add-goal-card" onClick={() => onOpen("goal")} type="button">
-                    <span>
-                        <Plus size={22} />
-                    </span>
-                    <strong>Novo objetivo financeiro</strong>
-                    <small>Defina o próximo passo do seu patrimônio.</small>
-                </button>
-            </div>
-        </>
     );
 }
