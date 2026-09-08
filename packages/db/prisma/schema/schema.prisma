@@ -1,10 +1,76 @@
 generator client {
   provider = "prisma-client"
-  output   = "../generated"
+  output = "../generated"
   moduleFormat = "esm"
   runtime = "nodejs"
 }
 
 datasource db {
   provider = "sqlite"
+}
+
+enum IncomeCategory {
+  SALARY
+  RESERVE
+  OTHER
+}
+
+enum ExpenseCategory {
+  FIXED
+  VARIABLE_FIXED
+  VARIABLE
+  RESERVE
+  INVESTMENT
+}
+
+model MonthlyPlan {
+  id        String          @id @default(cuid())
+  year      Int
+  month     Int
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  phases    PlanningPhase[]
+
+  @@unique([year, month])
+}
+
+model PlanningPhase {
+  id        String          @id @default(cuid())
+  planId    String
+  name      String
+  startDay  Int
+  endDay    Int
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  plan      MonthlyPlan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+  incomes   PlannedIncome[]
+  expenses  PlannedExpense[]
+
+  @@index([planId])
+}
+
+model PlannedIncome {
+  id        String          @id @default(cuid())
+  phaseId   String
+  name      String
+  amount    Int
+  category  IncomeCategory
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  phase     PlanningPhase   @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
+}
+
+model PlannedExpense {
+  id        String          @id @default(cuid())
+  phaseId   String
+  name      String
+  amount    Int
+  category  ExpenseCategory
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  phase     PlanningPhase   @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  @@index([phaseId])
 }
