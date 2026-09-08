@@ -1,3 +1,5 @@
+import { InvalidPhaseError } from "./errors";
+
 type DateRange = {
     endDay: number;
     startDay: number;
@@ -21,13 +23,13 @@ export function assertPhaseIsValid({ candidate, existing, month, year }: Validat
         candidate.endDay < candidate.startDay ||
         candidate.endDay > lastDay
     ) {
-        throw new Error("Phase dates must be within the selected month");
+        throw new InvalidPhaseError("Phase dates must be within the selected month");
     }
 
     const overlaps = existing.some(
         (phase) => candidate.startDay <= phase.endDay && candidate.endDay >= phase.startDay,
     );
     if (overlaps) {
-        throw new Error("Phase dates cannot overlap");
+        throw new InvalidPhaseError("Phase dates cannot overlap");
     }
 }

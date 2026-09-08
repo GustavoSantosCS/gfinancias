@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { assertPhaseIsValid } from "./rules";
+import { assertPhaseIsValid } from "./phase-policy";
 
 describe("assertPhaseIsValid", () => {
     it("accepts a phase inside the selected month without overlap", () => {

@@ -27,6 +27,13 @@ beforeEach(async () => {
 });
 
 describe("planning router", () => {
+    it("returns an empty month without creating a persisted plan", async () => {
+        const plan = await caller.planning.get({ month: 2, year: 2028 });
+
+        expect(plan.phases).toEqual([]);
+        expect(await db.monthlyPlan.count()).toBe(0);
+    });
+
     it("creates an empty plan, then persists phase income and expense records", async () => {
         const plan = await caller.planning.get({ month: 2, year: 2028 });
         expect(plan.phases).toEqual([]);
