@@ -113,7 +113,9 @@ model Card {
 model CardPurchase {
   id            String             @id @default(cuid())
   cardId        String
-  description   String
+  amount        Int
+  title         String
+  description   String?
   purchaseDate  DateTime
   installments  Int
   createdAt     DateTime           @default(now())
@@ -130,6 +132,7 @@ model CardAnticipation {
   purchaseId String
   date       DateTime
   mode       String
+  description String
   snapshot   String
   createdAt  DateTime           @default(now())
   purchase   CardPurchase       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)

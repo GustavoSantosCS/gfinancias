@@ -12,7 +12,7 @@ test("creates a card and a planned purchase", async ({ page }) => {
 
     await page.getByRole("button", { name: /Nova compra/ }).click();
     const purchaseDialog = page.getByRole("dialog", { name: "Nova compra" });
-    await purchaseDialog.getByRole("textbox", { name: "Descrição" }).fill("Passagem");
+    await purchaseDialog.getByRole("textbox", { name: "Título" }).fill("Passagem");
     await purchaseDialog.getByRole("spinbutton", { name: "Valor" }).fill("1200");
     await purchaseDialog.getByRole("button", { name: "Adicionar compra" }).click();
 
