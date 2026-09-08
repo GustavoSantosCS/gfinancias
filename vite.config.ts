@@ -88,7 +88,7 @@ export default defineConfig({
     staged: {
         "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,vue,svelte,json,jsonc,json5,css,md}": [
             "vp check --fix",
-            "vp test related --run --passWithNoTests",
+            "vp test related --run --maxWorkers=1 --passWithNoTests",
         ],
     },
 });

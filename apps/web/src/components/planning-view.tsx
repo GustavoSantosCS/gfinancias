@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowDownLeft, CalendarRange, Plus, ReceiptText, Scale } from "lucide-react";
+import { Button } from "@gfinancias/ui/components/button";
 
 type PlanningPhase = { id: string | number; name: string; startDay: number; endDay: number };
 type IncomeCategory = "Salário" | "Reserva" | "Outros";
@@ -138,12 +139,12 @@ export function PlanningView({
                 onNewPhase={onNewPhase}
             >
                 <>
-                    <button className="secondary-button" onClick={onNewExpense} type="button">
+                    <Button onClick={onNewExpense} type="button" variant="default">
                         <Plus size={16} /> Nova saída
-                    </button>
-                    <button className="primary-button" onClick={onNewIncome} type="button">
+                    </Button>
+                    <Button onClick={onNewIncome} type="button" variant="primary">
                         <Plus size={16} /> Nova entrada
-                    </button>
+                    </Button>
                 </>
             </PlanningHeading>
 

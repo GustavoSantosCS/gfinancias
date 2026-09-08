@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarClock, PiggyBank, Plus, ReceiptText, Wallet } from "lucide-react";
+import { Button } from "@gfinancias/ui/components/button";
 
 type Reserve = {
     id: number;
@@ -31,9 +32,9 @@ export function ReservesView({
                     <h1>Reservas para meses futuros</h1>
                     <p>Separe aos poucos o dinheiro de despesas previstas e proteja o orçamento.</p>
                 </div>
-                <button className="primary-button" onClick={onNewReserve} type="button">
+                <Button onClick={onNewReserve} type="button" variant="primary">
                     <Plus size={16} /> Nova reserva
-                </button>
+                </Button>
             </section>
 
             <section className="reserve-summary">

@@ -1,4 +1,5 @@
 import { Plus, Target } from "lucide-react";
+import { Button } from "@gfinancias/ui/components/button";
 import { Progress } from "./primitives";
 import type { Goal, ModalType } from "../types";
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -12,9 +13,9 @@ export function Goals({ goals, onOpen }: { goals: Goal[]; onOpen: (modal: ModalT
                     <h1>Objetivos financeiros</h1>
                     <p>Defina metas maiores e acompanhe quanto falta para cada conquista.</p>
                 </div>
-                <button className="primary-button" onClick={() => onOpen("goal")} type="button">
+                <Button onClick={() => onOpen("goal")} type="button" variant="primary">
                     <Plus size={16} /> Novo objetivo
-                </button>
+                </Button>
             </section>
             <div className="goals-grid">
                 {goals.map((goal, index) => {

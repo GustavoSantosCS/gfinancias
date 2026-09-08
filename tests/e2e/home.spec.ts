@@ -7,7 +7,7 @@ test("renders the delivery-one dashboard and disables unavailable navigation", a
         page.getByRole("heading", { name: "Seu dinheiro, antes dele ir embora." }),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Planejamento", exact: true })).toBeEnabled();
-    await expect(page.getByRole("button", { name: "Cartões", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Cartões", exact: true })).toBeEnabled();
     await expect(
         page.getByRole("button", { name: "Objetivos financeiros", exact: true }),
     ).toBeDisabled();

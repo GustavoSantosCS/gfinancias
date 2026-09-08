@@ -9,6 +9,8 @@ import {
     Plus,
     ReceiptText,
 } from "lucide-react";
+import { Button } from "@gfinancias/ui/components/button";
+
 import { Progress } from "./primitives";
 import type { Goal, Income, ModalType, PlanningPhase, View } from "../types";
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -54,13 +56,9 @@ export function Overview({
                     <h1>Seu dinheiro, antes dele ir embora.</h1>
                     <p>Decida o destino de cada valor e atravesse o mês com tranquilidade.</p>
                 </div>
-                <button
-                    className="secondary-button"
-                    onClick={() => onNavigate("planning")}
-                    type="button"
-                >
+                <Button onClick={() => onNavigate("planning")} type="button" variant="default">
                     Ver plano completo <ArrowUpRight size={16} />
-                </button>
+                </Button>
             </section>
             <section className="hero-card">
                 <div className="hero-card__main">

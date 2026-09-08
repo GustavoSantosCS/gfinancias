@@ -7,6 +7,12 @@ description: Build or change GFinanças frontend pages and reusable components w
 
 Use this skill when implementing or changing GFinanças frontend pages, feature components, or shared UI components. Read [the frontend architecture](../../../docs/arquitetura-frontend.md) before making structural decisions.
 
+## Reuse before creation
+
+Before changing a screen, inspect packages/ui/src/components and packages/ui/stories and list the relevant components already available. Reuse them whenever their responsibility fits. When a visual primitive is missing and it can serve more than one feature, create it in packages/ui, add a Storybook story, test it through its public behavior, and only then consume it from the feature.
+
+Known shared primitives: Button, Card, Dialog, Empty, FieldInput, Input, InputLabel, Label, Select, Skeleton, Textarea, Toast/Sonner, and Tooltip. Use InputLabel for every visible field label and FieldInput for text-like inputs that need a label.
+
 ## Structure and data flow
 
 - Use thin App Router routes: compose the page, define metadata, and delegate domain behavior to `apps/web/src/features/<domain>`.
@@ -19,6 +25,7 @@ Use this skill when implementing or changing GFinanças frontend pages, feature 
 ## Page and component behavior
 
 - Every server-backed page and component must handle loading, empty, error, and success states.
+- Loading must preserve as much of the final page layout as possible: retain the shell, navigation, headings, panels, and control placement, replacing only unavailable content with Skeletons rather than a standalone loading message.
 - Forms must expose field-level validation, prevent duplicate submissions, preserve entered values after a failed request, and provide mutation feedback.
 - Use semantic tokens for colors and verify light and dark modes. Do not encode domain meaning only through color.
 - Preserve keyboard access, visible focus, correctly associated labels and errors, and accessible dialog behavior.
