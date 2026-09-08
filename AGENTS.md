@@ -45,4 +45,13 @@ Execute a partir da raiz:
 - Execute as verificações pertinentes à alteração e informe falhas ou verificações que não puderam ser executadas.
 - Reutilize os componentes compartilhados e mantenha o acesso ao banco no backend.
 - Preserve alterações preexistentes do usuário. Não inclua segredos ou arquivos de ambiente em commits.
-- A indentação é 4 espaços;
+
+## Agent skills
+
+### Issue tracker
+
+As demandas deste repositório são acompanhadas no GitHub Issues usando a CLI `gh`. Consulte `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+O repositório usa documentação de domínio multi-contexto, com `CONTEXT-MAP.md`, contextos por área e ADRs globais ou locais. Consulte `docs/agents/domain.md`.

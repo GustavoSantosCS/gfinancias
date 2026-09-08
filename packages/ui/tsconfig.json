@@ -8,6 +8,6 @@
             "@gfinancias/ui/*": ["./src/*"]
         }
     },
-    "include": ["src/**/*.ts", "src/**/*.tsx"],
+    "include": ["src/**/*.ts", "src/**/*.tsx", "stories/**/*.ts"],
     "exclude": ["node_modules"]
 }
