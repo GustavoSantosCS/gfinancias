@@ -7,6 +7,7 @@ export const env = createEnv({
         DATABASE_URL: z.string().min(1),
         CORS_ORIGIN: z.url(),
         NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+        PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
     },
     runtimeEnv: process.env,
     skipValidation: !!process.env.SKIP_ENV_VALIDATION,

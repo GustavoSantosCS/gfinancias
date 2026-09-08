@@ -3,7 +3,8 @@
 import { Button } from "@gfinancias/ui/components/button";
 import { Input } from "@gfinancias/ui/components/input";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { Moon, Sun } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
 import { queryClient, trpc } from "@/utils/trpc";
@@ -22,14 +23,34 @@ const expenseCategories = [
     ["INVESTMENT", "Investimento"],
 ] as const;
 
+function formText(value: FormDataEntryValue | null) {
+    return typeof value === "string" ? value : "";
+}
+
 function toCents(value: FormDataEntryValue | null) {
-    return Math.round(Number(String(value).replace(",", ".")) * 100);
+    return Math.round(Number(formText(value).replace(",", ".")) * 100);
 }
 
 export function PlanningPage() {
     const today = new Date();
+    const [dark, setDark] = useState(true);
     const [month, setMonth] = useState(today.getMonth() + 1);
     const [year, setYear] = useState(today.getFullYear());
+
+    useEffect(() => {
+        const saved = window.localStorage.getItem("gfin-theme");
+        const enabled = saved ? saved === "dark" : true;
+        setDark(enabled);
+        document.documentElement.classList.toggle("dark", enabled);
+    }, []);
+
+    const toggleTheme = () => {
+        const next = !dark;
+        setDark(next);
+        window.localStorage.setItem("gfin-theme", next ? "dark" : "light");
+        document.documentElement.classList.toggle("dark", next);
+    };
+
     const query = useQuery(trpc.planning.get.queryOptions({ month, year }));
     const invalidate = () =>
         queryClient.invalidateQueries({ queryKey: trpc.planning.get.queryKey({ month, year }) });
@@ -83,7 +104,7 @@ export function PlanningPage() {
             {
                 endDay: Number(form.get("endDay")),
                 month,
-                name: String(form.get("name")),
+                name: formText(form.get("name")),
                 startDay: Number(form.get("startDay")),
                 year,
             },
@@ -97,8 +118,8 @@ export function PlanningPage() {
             const form = new FormData(formElement);
             const input = {
                 amount: toCents(form.get("amount")),
-                category: String(form.get("category")),
-                name: String(form.get("name")),
+                category: formText(form.get("category")),
+                name: formText(form.get("name")),
                 phaseId,
             };
             if (kind === "income")
@@ -121,6 +142,15 @@ export function PlanningPage() {
                     </h1>
                 </div>
                 <div className="flex gap-2">
+                    <Button
+                        aria-label={dark ? "Ativar modo claro" : "Ativar modo escuro"}
+                        onClick={toggleTheme}
+                        size="icon"
+                        type="button"
+                        variant="outline"
+                    >
+                        {dark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
+                    </Button>
                     <Input
                         aria-label="Mês"
                         max="12"

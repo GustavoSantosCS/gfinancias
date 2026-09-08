@@ -1,5 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const serverPort = Number(process.env.E2E_SERVER_PORT ?? 3000);
+const webPort = Number(process.env.E2E_WEB_PORT ?? 3101);
+const databaseUrl = process.env.E2E_DATABASE_URL ?? "file:../../.tmp/gfinancias-e2e.db";
+const serverUrl = `http://localhost:${serverPort}`;
+const webUrl = `http://localhost:${webPort}`;
+
 export default defineConfig({
     testDir: "./tests/e2e",
     fullyParallel: true,
@@ -8,7 +14,7 @@ export default defineConfig({
     workers: process.env.CI ? 1 : undefined,
     reporter: [["list"], ["html", { open: "never" }]],
     use: {
-        baseURL: "http://localhost:3101",
+        baseURL: webUrl,
         trace: "retain-on-failure",
         screenshot: "only-on-failure",
     },
@@ -16,19 +22,23 @@ export default defineConfig({
     webServer: [
         {
             command: "npm run dev --workspace server",
-            url: "http://localhost:3000",
+            url: serverUrl,
             reuseExistingServer: false,
             env: {
-                DATABASE_URL: "file:../../.tmp/gfinancias-e2e.db",
-                CORS_ORIGIN: "http://localhost:3101",
+                DATABASE_URL: databaseUrl,
+                CORS_ORIGIN: webUrl,
+                PORT: String(serverPort),
             },
         },
         {
-            command: "npm exec --workspace web -- next dev --port 3101",
-            url: "http://localhost:3101",
+            command: `npm exec --workspace web -- next dev --port ${webPort}`,
+            url: webUrl,
             reuseExistingServer: false,
             timeout: 120000,
-            env: { NEXT_PUBLIC_SERVER_URL: "http://localhost:3000" },
+            env: {
+                NEXT_DIST_DIR: `.next-e2e-${webPort}`,
+                NEXT_PUBLIC_SERVER_URL: serverUrl,
+            },
         },
     ],
 });

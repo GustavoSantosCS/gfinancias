@@ -22,12 +22,15 @@ import {
     WalletCards,
     X,
 } from "lucide-react";
-import { type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { parseAsInteger, parseAsString, useQueryState, useQueryStates } from "nuqs";
+import { Suspense, type FormEvent, type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { PlanningView } from "@/components/planning-view";
 
-import { PlanningPage } from "@/features/planning/planning-page";
 import { ReservesView } from "@/components/reserves-view";
+import { translatePlanningError } from "@/features/planning/utils/api-errors";
+import { trpc } from "@/utils/trpc";
 
 type View = "overview" | "planning" | "cards" | "goals" | "reserves";
 type ModalType =
@@ -40,7 +43,7 @@ type ModalType =
     | "reserve"
     | null;
 type Phase = string;
-type PlanningPhase = { id: number; name: string; startDay: number; endDay: number };
+type PlanningPhase = { id: string | number; name: string; startDay: number; endDay: number };
 type CreditCardAccount = {
     id: number;
     name: string;
@@ -56,9 +59,13 @@ type ExpenseCategory =
     | "Saídas variadas"
     | "Reserva"
     | "Investimentos";
-type PlannedItem = { id: number; name: string; amount: number; phase: Phase };
+type PlannedItem = { id: string | number; name: string; amount: number; phase: Phase };
 type Income = PlannedItem & { category: IncomeCategory };
 type Expense = PlannedItem & { category: ExpenseCategory };
+type EditingRecord =
+    | { kind: "income"; record: Income }
+    | { kind: "expense"; record: Expense }
+    | null;
 type CardExpense = {
     id: number;
     description: string;
@@ -72,101 +79,41 @@ type Reserve = { id: number; name: string; target: number; saved: number; due: s
 const navigation = [
     { id: "overview" as const, label: "Visão geral", icon: LayoutDashboard },
     { id: "planning" as const, label: "Planejamento", icon: CalendarDays },
-    { id: "cards" as const, label: "Cartões", icon: CreditCard },
-    { id: "goals" as const, label: "Objetivos financeiros", icon: Target },
-    { id: "reserves" as const, label: "Reservas", icon: PiggyBank },
+    { id: "cards" as const, label: "Cartões", icon: CreditCard, unavailable: true },
+    { id: "goals" as const, label: "Objetivos financeiros", icon: Target, unavailable: true },
+    { id: "reserves" as const, label: "Reservas", icon: PiggyBank, unavailable: true },
 ];
-const initialPhases: PlanningPhase[] = [
-    { id: 1, name: "1ª fase", startDay: 1, endDay: 15 },
-    { id: 2, name: "2ª fase", startDay: 16, endDay: 31 },
-];
-const initialCards: CreditCardAccount[] = [
-    { id: 1, name: "Nubank", color: "purple", limit: 3000, dueDay: 8, lastDigits: "4821" },
-    { id: 2, name: "Inter", color: "orange", limit: 1800, dueDay: 12, lastDigits: "3104" },
-];
-const initialIncomes: Income[] = [
-    { id: 1, name: "Salário previsto 60%", amount: 2902.31, phase: "1ª fase", category: "Salário" },
-    { id: 2, name: "Inglês", amount: 258, phase: "1ª fase", category: "Outros" },
-    { id: 3, name: "Pagamento de empréstimo", amount: 167, phase: "1ª fase", category: "Outros" },
-    { id: 4, name: "Gastos gerais", amount: 700, phase: "1ª fase", category: "Reserva" },
-    { id: 5, name: "Pix Crédito Inter", amount: 333, phase: "1ª fase", category: "Outros" },
-    { id: 6, name: "Óculos", amount: 143, phase: "1ª fase", category: "Reserva" },
-    { id: 7, name: "Academia", amount: 145, phase: "1ª fase", category: "Reserva" },
-    { id: 8, name: "Combustível", amount: 200, phase: "1ª fase", category: "Reserva" },
-    { id: 9, name: "Salário 40%", amount: 3310.38, phase: "2ª fase", category: "Salário" },
-];
-const initialExpenses: Expense[] = [
-    { id: 1, name: "Internet", amount: 144.99, phase: "1ª fase", category: "Saídas fixas" },
-    { id: 2, name: "Inglês", amount: 258, phase: "1ª fase", category: "Saídas fixas" },
-    { id: 3, name: "Nubank", amount: 1314.8, phase: "1ª fase", category: "Saídas fixas" },
-    { id: 4, name: "Inter", amount: 333, phase: "1ª fase", category: "Saídas fixas" },
-    {
-        id: 5,
-        name: "Energia",
-        amount: 750,
-        phase: "1ª fase",
-        category: "Saídas fixas com valores variáveis",
-    },
-    {
-        id: 6,
-        name: "Água e esgoto",
-        amount: 90,
-        phase: "1ª fase",
-        category: "Saídas fixas com valores variáveis",
-    },
-    { id: 7, name: "Gastos gerais", amount: 300, phase: "1ª fase", category: "Saídas variadas" },
-    { id: 8, name: "Combustível", amount: 300, phase: "1ª fase", category: "Saídas variadas" },
-    { id: 9, name: "Academia", amount: 145, phase: "1ª fase", category: "Saídas variadas" },
-    {
-        id: 10,
-        name: "Reserva para viagem",
-        amount: 300,
-        phase: "1ª fase",
-        category: "Reserva",
-    },
-    {
-        id: 11,
-        name: "Reserva de emergência",
-        amount: 900,
-        phase: "1ª fase",
-        category: "Investimentos",
-    },
-    { id: 12, name: "Mounjaro", amount: 1750, phase: "2ª fase", category: "Saídas fixas" },
-    { id: 13, name: "Inglês", amount: 258, phase: "2ª fase", category: "Saídas variadas" },
-    { id: 14, name: "Gastos gerais", amount: 400, phase: "2ª fase", category: "Saídas variadas" },
-    { id: 15, name: "Óculos", amount: 143, phase: "2ª fase", category: "Reserva" },
-    {
-        id: 16,
-        name: "Reserva de emergência",
-        amount: 750,
-        phase: "2ª fase",
-        category: "Investimentos",
-    },
-];
-const initialCardExpenses: CardExpense[] = [
-    { id: 1, description: "YouTube", amount: 26.9, card: "Nubank", installments: 1 },
-    { id: 2, description: "Combustível", amount: 200, card: "Nubank", installments: 1 },
-    { id: 3, description: "ChatGPT Plus", amount: 99.9, card: "Nubank", installments: 1 },
-    { id: 4, description: "Óculos", amount: 143, card: "Nubank", installments: 3 },
-    { id: 5, description: "Academia", amount: 145, card: "Nubank", installments: 1 },
-    { id: 6, description: "Gastos gerais", amount: 700, card: "Nubank", installments: 1 },
-    { id: 7, description: "Pix Crédito", amount: 333, card: "Inter", installments: 3 },
-];
-const initialGoals: Goal[] = [
-    { id: 1, name: "Reserva de emergência", target: 42000, saved: 8200, deadline: "Dez 2028" },
-    {
-        id: 2,
-        name: "Investir R$ 10 mil em ações",
-        target: 10000,
-        saved: 2350,
-        deadline: "Dez 2027",
-    },
-];
-const initialReserves: Reserve[] = [
-    { id: 1, name: "IPVA e licenciamento", target: 1408.07, saved: 704.04, due: "Mar 2027" },
-    { id: 2, name: "Seguro anual do carro", target: 2588.64, saved: 647.16, due: "Ago 2027" },
-    { id: 3, name: "Manutenção do carro", target: 1800, saved: 600, due: "Jan 2027" },
-];
+const initialPhases: PlanningPhase[] = [];
+const initialCards: CreditCardAccount[] = [];
+const initialIncomes: Income[] = [];
+const initialExpenses: Expense[] = [];
+const initialCardExpenses: CardExpense[] = [];
+const initialGoals: Goal[] = [];
+const initialReserves: Reserve[] = [];
+
+const incomeCategoryLabels = { OTHER: "Outros", RESERVE: "Reserva", SALARY: "Salário" } as const;
+const incomeApiCategories = {
+    OTHER: "OTHER",
+    Outros: "OTHER",
+    Reserva: "RESERVE",
+    Salário: "SALARY",
+} as const;
+const expenseApiCategories = {
+    Investimentos: "INVESTMENT",
+    Reserva: "RESERVE",
+    "Saídas fixas": "FIXED",
+    "Saídas fixas com valores variáveis": "VARIABLE_FIXED",
+    "Saídas variadas": "VARIABLE",
+} as const;
+
+const expenseCategoryLabels = {
+    FIXED: "Saídas fixas",
+    INVESTMENT: "Investimentos",
+    RESERVE: "Reserva",
+    VARIABLE: "Saídas variadas",
+    VARIABLE_FIXED: "Saídas fixas com valores variáveis",
+} as const;
+
 const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const months = [
     "Janeiro",
@@ -263,14 +210,26 @@ function Progress({
     );
 }
 
-function PrototypeHome() {
-    const [view, setView] = useState<View>("overview");
+export function PrototypeHome({ initialView = "overview" }: { initialView?: View }) {
+    const [view, setView] = useState<View>(initialView);
     const [modal, setModal] = useState<ModalType>(null);
+    const [editingRecord, setEditingRecord] = useState<EditingRecord>(null);
     const [dark, setDark] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
-    const [monthIndex, setMonthIndex] = useState(10);
-    const [year, setYear] = useState(2026);
+    const today = useMemo(() => new Date(), []);
+    const [{ month, year }, setPeriod] = useQueryStates(
+        {
+            month: parseAsInteger.withDefault(today.getMonth() + 1),
+            year: parseAsInteger.withDefault(today.getFullYear()),
+        },
+        { clearOnDefault: false, history: "push" },
+    );
+    const [activePhaseId, setActivePhaseId] = useQueryState(
+        "phase",
+        parseAsString.withOptions({ history: "push" }),
+    );
+    const monthIndex = month - 1;
     const [incomes, setIncomes] = useState(initialIncomes);
     const [expenses, setExpenses] = useState(initialExpenses);
     const [phases, setPhases] = useState(initialPhases);
@@ -286,6 +245,12 @@ function PrototypeHome() {
     const [expenseCategory, setExpenseCategory] = useState<ExpenseCategory>("Saídas fixas");
     const [expenseReserveId, setExpenseReserveId] = useState(String(initialReserves[0]?.id ?? ""));
     const [expenseAmount, setExpenseAmount] = useState("");
+    const planQuery = useQuery(trpc.planning.get.queryOptions({ month, year }));
+    const createPhase = useMutation(trpc.planning.createPhase.mutationOptions());
+    const createIncome = useMutation(trpc.planning.createIncome.mutationOptions());
+    const createExpense = useMutation(trpc.planning.createExpense.mutationOptions());
+    const updateIncome = useMutation(trpc.planning.updateIncome.mutationOptions());
+    const updateExpense = useMutation(trpc.planning.updateExpense.mutationOptions());
 
     useEffect(() => {
         const saved = window.localStorage.getItem("gfin-theme");
@@ -293,6 +258,56 @@ function PrototypeHome() {
         setDark(enabled);
         document.documentElement.classList.toggle("dark", enabled);
     }, []);
+
+    useEffect(() => {
+        const searchParams = new URLSearchParams(window.location.search);
+        if (!searchParams.has("month") || !searchParams.has("year")) {
+            void setPeriod({ month, year }, { history: "replace" });
+        }
+    }, [month, setPeriod, year]);
+
+    useEffect(() => {
+        if (!planQuery.data) return;
+
+        setPhases(
+            planQuery.data.phases.map((phase) => ({
+                endDay: phase.endDay,
+                id: phase.id,
+                name: phase.name,
+                startDay: phase.startDay,
+            })),
+        );
+        setIncomes(
+            planQuery.data.phases.flatMap((phase) =>
+                phase.incomes.map((income) => ({
+                    amount: income.amount / 100,
+                    category: incomeCategoryLabels[income.category],
+                    id: income.id,
+                    name: income.name,
+                    phase: phase.name,
+                })),
+            ),
+        );
+        setExpenses(
+            planQuery.data.phases.flatMap((phase) =>
+                phase.expenses.map((expense) => ({
+                    amount: expense.amount / 100,
+                    category: expenseCategoryLabels[expense.category],
+                    id: expense.id,
+                    name: expense.name,
+                    phase: phase.name,
+                })),
+            ),
+        );
+
+        const nextPhaseId = planQuery.data.phases.some((phase) => phase.id === activePhaseId)
+            ? activePhaseId
+            : (planQuery.data.phases[0]?.id ?? null);
+        if (nextPhaseId !== activePhaseId) {
+            void setActivePhaseId(nextPhaseId, { history: "replace" });
+        }
+    }, [activePhaseId, planQuery.data, setActivePhaseId]);
+
     const totals = useMemo(() => {
         const income = incomes.reduce((sum, item) => sum + item.amount, 0);
         const bills = expenses
@@ -313,19 +328,21 @@ function PrototypeHome() {
         setView(next);
         setSidebarOpen(false);
     };
-    const changeMonth = (direction: number) =>
-        setMonthIndex((current) => {
-            const next = current + direction;
-            if (next < 0) {
-                setYear((value) => value - 1);
-                return 11;
-            }
-            if (next > 11) {
-                setYear((value) => value + 1);
-                return 0;
-            }
-            return next;
-        });
+    const changeMonth = (direction: number) => {
+        let nextMonth = month + direction;
+        let nextYear = year;
+        if (nextMonth < 1) {
+            nextMonth = 12;
+            nextYear -= 1;
+        } else if (nextMonth > 12) {
+            nextMonth = 1;
+            nextYear += 1;
+        }
+        setModal(null);
+        setEditingRecord(null);
+        void setActivePhaseId(null, { history: "replace" });
+        void setPeriod({ month: nextMonth, year: nextYear }, { history: "push" });
+    };
     const toggleTheme = () => {
         const next = !dark;
         setDark(next);
@@ -335,62 +352,74 @@ function PrototypeHome() {
     const addIncome = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        const entryAmount = amount(formValue(data, "amount"));
-        const category = formValue(data, "category") as IncomeCategory;
-        if (category === "Reserva") {
-            const reserveId = Number(formValue(data, "reserve"));
-            setReserves((items) =>
-                items.map((reserve) =>
-                    reserve.id === reserveId
-                        ? { ...reserve, saved: Math.max(reserve.saved - entryAmount, 0) }
-                        : reserve,
-                ),
-            );
-        }
-        setIncomes((items) => [
-            ...items,
+        const category = formValue(data, "category") as keyof typeof incomeApiCategories;
+        createIncome.mutate(
             {
-                id: Date.now(),
+                amount: Math.round(amount(formValue(data, "amount")) * 100),
+                category: incomeApiCategories[category],
                 name: formValue(data, "name"),
-                amount: entryAmount,
-                phase: formValue(data, "phase") as Phase,
-                category,
+                phaseId: formValue(data, "phase"),
             },
-        ]);
-        setIncomeCategory("Salário");
-        setIncomeAmount("");
-        setModal(null);
-        setView("planning");
+            {
+                onSuccess: async () => {
+                    await planQuery.refetch();
+                    setIncomeCategory("Salário");
+                    setIncomeAmount("");
+                    setModal(null);
+                },
+            },
+        );
     };
     const addExpense = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        const plannedAmount = amount(formValue(data, "amount"));
-        const category = formValue(data, "category") as ExpenseCategory;
-        if (category === "Reserva") {
-            const reserveId = Number(formValue(data, "reserve"));
-            setReserves((items) =>
-                items.map((reserve) =>
-                    reserve.id === reserveId
-                        ? { ...reserve, saved: reserve.saved + plannedAmount }
-                        : reserve,
-                ),
-            );
-        }
-        setExpenses((items) => [
-            ...items,
+        const category = formValue(data, "category") as keyof typeof expenseApiCategories;
+        createExpense.mutate(
             {
-                id: Date.now(),
+                amount: Math.round(amount(formValue(data, "amount")) * 100),
+                category: expenseApiCategories[category],
                 name: formValue(data, "name"),
-                amount: plannedAmount,
-                phase: formValue(data, "phase") as Phase,
-                category,
+                phaseId: formValue(data, "phase"),
             },
-        ]);
-        setExpenseCategory("Saídas fixas");
-        setExpenseAmount("");
-        setModal(null);
-        setView("planning");
+            {
+                onSuccess: async () => {
+                    await planQuery.refetch();
+                    setExpenseCategory("Saídas fixas");
+                    setExpenseAmount("");
+                    setModal(null);
+                },
+            },
+        );
+    };
+    const editRecord = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!editingRecord) return;
+
+        const data = new FormData(event.currentTarget);
+        const baseInput = {
+            amount: Math.round(amount(formValue(data, "amount")) * 100),
+            id: String(editingRecord.record.id),
+            name: formValue(data, "name"),
+        };
+        const onSuccess = async () => {
+            await planQuery.refetch();
+            setEditingRecord(null);
+        };
+
+        if (editingRecord.kind === "income") {
+            const category = formValue(data, "category") as keyof typeof incomeApiCategories;
+            updateIncome.mutate(
+                { ...baseInput, category: incomeApiCategories[category] },
+                { onSuccess },
+            );
+            return;
+        }
+
+        const category = formValue(data, "category") as keyof typeof expenseApiCategories;
+        updateExpense.mutate(
+            { ...baseInput, category: expenseApiCategories[category] },
+            { onSuccess },
+        );
     };
     const addCardExpense = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -430,17 +459,21 @@ function PrototypeHome() {
     const addPhase = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         const data = new FormData(event.currentTarget);
-        setPhases((items) => [
-            ...items,
+        createPhase.mutate(
             {
-                id: Date.now(),
+                endDay: Number(formValue(data, "endDay")),
+                month,
                 name: formValue(data, "name"),
                 startDay: Number(formValue(data, "startDay")),
-                endDay: Number(formValue(data, "endDay")),
+                year,
             },
-        ]);
-        setModal(null);
-        setView("planning");
+            {
+                onSuccess: async () => {
+                    await planQuery.refetch();
+                    setModal(null);
+                },
+            },
+        );
     };
     const addGoal = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -510,8 +543,10 @@ function PrototypeHome() {
                         return (
                             <button
                                 className={view === item.id ? "active" : ""}
+                                disabled={item.unavailable}
                                 key={item.id}
                                 onClick={() => navigate(item.id)}
+                                title={item.unavailable ? "Disponível em breve" : undefined}
                                 type="button"
                             >
                                 <Icon size={19} strokeWidth={1.8} />
@@ -592,19 +627,38 @@ function PrototypeHome() {
                         <Overview
                             totals={totals}
                             onNavigate={navigate}
-                            onOpen={setModal}
+                            onOpen={() => window.location.assign("/planning")}
                             goals={goals}
+                            incomes={incomes}
+                            phases={phases}
                         />
                     )}
                     {view === "planning" && (
                         <PlanningView
+                            activePhaseId={activePhaseId}
                             daysInMonth={new Date(year, monthIndex + 1, 0).getDate()}
+                            errorMessage={planQuery.isError ? planQuery.error.message : null}
                             expenses={expenses}
                             incomes={incomes}
+                            isLoading={planQuery.isFetching}
                             month={months[monthIndex]}
+                            onEditExpense={(expense) => {
+                                updateExpense.reset();
+                                setEditingRecord({ kind: "expense", record: expense });
+                            }}
+                            onEditIncome={(income) => {
+                                updateIncome.reset();
+                                setEditingRecord({ kind: "income", record: income });
+                            }}
                             onNewExpense={() => setModal("expense")}
                             onNewIncome={() => setModal("income")}
-                            onNewPhase={() => setModal("phase")}
+                            onNewPhase={() => {
+                                createPhase.reset();
+                                setModal("phase");
+                            }}
+                            onPhaseChange={(phaseId) => {
+                                void setActivePhaseId(phaseId, { history: "push" });
+                            }}
                             phases={phases}
                             year={year}
                         />
@@ -621,6 +675,70 @@ function PrototypeHome() {
                     )}
                 </div>
             </main>
+            {editingRecord && (
+                <Modal
+                    onClose={() => setEditingRecord(null)}
+                    title={editingRecord.kind === "income" ? "Editar entrada" : "Editar saída"}
+                >
+                    <form className="form" onSubmit={editRecord}>
+                        <Field htmlFor="edit-record-name" label="Nome">
+                            <input
+                                autoFocus
+                                defaultValue={editingRecord.record.name}
+                                id="edit-record-name"
+                                name="name"
+                                required
+                            />
+                        </Field>
+                        <Field htmlFor="edit-record-category" label="Categoria">
+                            <select
+                                defaultValue={editingRecord.record.category}
+                                id="edit-record-category"
+                                name="category"
+                            >
+                                {editingRecord.kind === "income" ? (
+                                    <>
+                                        <option>Salário</option>
+                                        <option>Reserva</option>
+                                        <option>Outros</option>
+                                    </>
+                                ) : (
+                                    <>
+                                        <option>Saídas fixas</option>
+                                        <option>Saídas fixas com valores variáveis</option>
+                                        <option>Saídas variadas</option>
+                                        <option>Reserva</option>
+                                        <option>Investimentos</option>
+                                    </>
+                                )}
+                            </select>
+                        </Field>
+                        <Field htmlFor="edit-record-amount" label="Valor">
+                            <input
+                                defaultValue={editingRecord.record.amount}
+                                id="edit-record-amount"
+                                min="0.01"
+                                name="amount"
+                                required
+                                step="0.01"
+                                type="number"
+                            />
+                        </Field>
+                        <button
+                            className="primary-button form__submit"
+                            disabled={updateIncome.isPending || updateExpense.isPending}
+                            type="submit"
+                        >
+                            Salvar alterações
+                        </button>
+                        {(updateIncome.error || updateExpense.error) && (
+                            <p role="alert">
+                                {(updateIncome.error || updateExpense.error)?.message}
+                            </p>
+                        )}
+                    </form>
+                </Modal>
+            )}
             {modal === "income" && (
                 <Modal onClose={() => setModal(null)} title="Nova entrada">
                     <form className="form" onSubmit={addIncome}>
@@ -690,19 +808,26 @@ function PrototypeHome() {
                             </Field>
                             <Field htmlFor="income-phase" label="Fase do mês">
                                 <select
-                                    defaultValue={phases[0]?.name}
+                                    defaultValue={String(phases[0]?.id ?? "")}
                                     id="income-phase"
                                     name="phase"
                                 >
                                     {phases.map((phase) => (
-                                        <option key={phase.id}>{phase.name}</option>
+                                        <option key={phase.id} value={phase.id}>
+                                            {phase.name}
+                                        </option>
                                     ))}
                                 </select>
                             </Field>
                         </div>
-                        <button className="primary-button form__submit" type="submit">
+                        <button
+                            className="primary-button form__submit"
+                            disabled={createIncome.isPending}
+                            type="submit"
+                        >
                             Adicionar entrada
                         </button>
+                        {createIncome.error && <p role="alert">{createIncome.error.message}</p>}
                     </form>
                 </Modal>
             )}
@@ -779,19 +904,26 @@ function PrototypeHome() {
                             </Field>
                             <Field htmlFor="expense-phase" label="Fase do mês">
                                 <select
-                                    defaultValue={phases[0]?.name}
+                                    defaultValue={String(phases[0]?.id ?? "")}
                                     id="expense-phase"
                                     name="phase"
                                 >
                                     {phases.map((phase) => (
-                                        <option key={phase.id}>{phase.name}</option>
+                                        <option key={phase.id} value={phase.id}>
+                                            {phase.name}
+                                        </option>
                                     ))}
                                 </select>
                             </Field>
                         </div>
-                        <button className="primary-button form__submit" type="submit">
+                        <button
+                            className="primary-button form__submit"
+                            disabled={createExpense.isPending}
+                            type="submit"
+                        >
                             Adicionar saída
                         </button>
+                        {createExpense.error && <p role="alert">{createExpense.error.message}</p>}
                     </form>
                 </Modal>
             )}
@@ -949,7 +1081,7 @@ function PrototypeHome() {
                             <Field htmlFor="phase-end" label="Termina no dia">
                                 <input
                                     id="phase-end"
-                                    max="31"
+                                    max={new Date(year, monthIndex + 1, 0).getDate()}
                                     min="1"
                                     name="endDay"
                                     required
@@ -957,9 +1089,16 @@ function PrototypeHome() {
                                 />
                             </Field>
                         </div>
-                        <button className="primary-button form__submit" type="submit">
+                        <button
+                            className="primary-button form__submit"
+                            disabled={createPhase.isPending}
+                            type="submit"
+                        >
                             Criar fase
                         </button>
+                        {createPhase.error && (
+                            <p role="alert">{translatePlanningError(createPhase.error.message)}</p>
+                        )}
                     </form>
                 </Modal>
             )}
@@ -1062,6 +1201,8 @@ function Overview({
     onOpen,
     onNavigate,
     goals,
+    incomes,
+    phases,
 }: {
     totals: {
         income: number;
@@ -1074,7 +1215,15 @@ function Overview({
     onOpen: (modal: ModalType) => void;
     onNavigate: (view: View) => void;
     goals: Goal[];
+    incomes: Income[];
+    phases: PlanningPhase[];
 }) {
+    const phaseSummaries = phases.map((phase) => {
+        const income = incomes
+            .filter((item) => item.phase === phase.name)
+            .reduce((sum, item) => sum + item.amount, 0);
+        return { income, name: phase.name };
+    });
     const allocation = [
         { label: "Contas e compromissos", value: totals.bills, color: "violet" },
         { label: "Vida e gastos flexíveis", value: totals.flexible, color: "coral" },
@@ -1084,7 +1233,7 @@ function Overview({
         <>
             <section className="page-heading">
                 <div>
-                    <span className="eyebrow">Novembro sob controle</span>
+                    <span className="eyebrow">Mês sob controle</span>
                     <h1>Seu dinheiro, antes dele ir embora.</h1>
                     <p>Decida o destino de cada valor e atravesse o mês com tranquilidade.</p>
                 </div>
@@ -1110,7 +1259,7 @@ function Overview({
                         <span>Entradas previstas</span>
                         <strong>{money.format(totals.income)}</strong>
                         <small>
-                            <ArrowDownLeft size={13} /> dividido em 2 fases
+                            <ArrowDownLeft size={13} /> valores cadastrados no planejamento
                         </small>
                     </div>
                     <div>
@@ -1204,26 +1353,21 @@ function Overview({
                         </button>
                     </div>
                     <div className="phase-bars">
-                        <div className="phase-row">
-                            <div>
-                                <strong>1ª fase</strong>
-                                <span>Entram {money.format(4848.31)}</span>
+                        {phaseSummaries.length === 0 && (
+                            <p>Nenhuma fase cadastrada para este mês.</p>
+                        )}
+                        {phaseSummaries.map((phase) => (
+                            <div className="phase-row" key={phase.name}>
+                                <div>
+                                    <strong>{phase.name}</strong>
+                                    <span>Entram {money.format(phase.income)}</span>
+                                </div>
+                                <div className="phase-row__bar">
+                                    <span />
+                                </div>
+                                <b>{money.format(phase.income)}</b>
                             </div>
-                            <div className="phase-row__bar">
-                                <span />
-                            </div>
-                            <b>{money.format(12.52)}</b>
-                        </div>
-                        <div className="phase-row">
-                            <div>
-                                <strong>2ª fase</strong>
-                                <span>Entram {money.format(3310.38)}</span>
-                            </div>
-                            <div className="phase-row__bar">
-                                <span />
-                            </div>
-                            <b>{money.format(9.38)}</b>
-                        </div>
+                        ))}
                     </div>
                     <div className="phase-note">
                         <CircleDollarSign size={18} />
@@ -1395,7 +1539,11 @@ function Cards({
 }
 
 export default function Home() {
-    return <PlanningPage />;
+    return (
+        <Suspense fallback={null}>
+            <PrototypeHome />
+        </Suspense>
+    );
 }
 function Goals({ goals, onOpen }: { goals: Goal[]; onOpen: (modal: ModalType) => void }) {
     return (

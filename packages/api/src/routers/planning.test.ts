@@ -80,4 +80,51 @@ describe("planning router", () => {
             }),
         ).rejects.toMatchObject({ message: "Phase dates cannot overlap" });
     });
+
+    it("updates existing income and expense records", async () => {
+        const phase = await caller.planning.createPhase({
+            endDay: 15,
+            month: 3,
+            name: "First half",
+            startDay: 1,
+            year: 2028,
+        });
+        const income = await caller.planning.createIncome({
+            amount: 500_000,
+            category: "SALARY",
+            name: "Salary",
+            phaseId: phase.id,
+        });
+        const expense = await caller.planning.createExpense({
+            amount: 10_000,
+            category: "FIXED",
+            name: "Internet",
+            phaseId: phase.id,
+        });
+
+        await caller.planning.updateIncome({
+            amount: 550_000,
+            category: "OTHER",
+            id: income.id,
+            name: "Updated salary",
+        });
+        await caller.planning.updateExpense({
+            amount: 15_000,
+            category: "VARIABLE",
+            id: expense.id,
+            name: "Updated internet",
+        });
+
+        const saved = await caller.planning.get({ month: 3, year: 2028 });
+        expect(saved.phases[0]?.incomes[0]).toMatchObject({
+            amount: 550_000,
+            category: "OTHER",
+            name: "Updated salary",
+        });
+        expect(saved.phases[0]?.expenses[0]).toMatchObject({
+            amount: 15_000,
+            category: "VARIABLE",
+            name: "Updated internet",
+        });
+    });
 });
