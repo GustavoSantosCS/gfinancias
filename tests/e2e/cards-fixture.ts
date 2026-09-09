@@ -54,12 +54,13 @@ export const test = base.extend<{ cards: CardsFixture }>({
                 await expect(page.getByRole("button", { name: /Novo cartão/ })).toBeEnabled();
                 const edit = page.getByRole("button", { name: "Editar " + name, exact: true });
                 if ((await edit.count()) === 0) continue;
-                await edit.click();
+                await edit.scrollIntoViewIfNeeded();
+                await edit.click({ force: true });
                 page.once("dialog", (dialog) => dialog.accept());
-                await page
+                const remove = page
                     .getByRole("dialog", { name: "Editar cartão" })
-                    .getByRole("button", { name: "Remover cartão" })
-                    .click();
+                    .getByRole("button", { name: "Remover cartão" });
+                await remove.evaluate((button) => (button as HTMLElement).click());
                 await expect(edit).toHaveCount(0);
             }
         }
