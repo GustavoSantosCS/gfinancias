@@ -138,6 +138,9 @@ it("shows monthly entries and opens the purchase form for active cards", async (
     const minimalCard = screen.getByRole("button", { name: "Filtrar por Minimal" });
     expect(minimalCard.textContent).toContain("Minimal");
     expect(minimalCard.querySelectorAll(".credit-card__metadata > small")).toHaveLength(4);
+    expect(screen.getByRole("button", { name: "Abrir detalhes de Curso" }).className).toContain(
+        "cursor-pointer",
+    );
 
     expect(
         screen.getByRole("heading", { name: "Detalhamento" }).parentElement?.className,
@@ -172,6 +175,7 @@ it("shows monthly entries and opens the purchase form for active cards", async (
     expect(screen.queryByText("Competência")).toBeNull();
     expect(screen.getByText("Curso")).toBeTruthy();
     expect(screen.getByText("2/3")).toBeTruthy();
+    expect(document.querySelector(".transactions-table__amount")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /Nova compra/ }));
     expect(screen.getByRole("textbox", { name: "Título" })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Descrição" })).toBeTruthy();
@@ -212,7 +216,7 @@ it("centers the empty purchase state", () => {
 
     render(<CardsPage />);
 
-    expect(screen.getByText("Nenhuma compra nesta competência.").className).toContain(
+    expect(screen.getByText("Nenhuma compra nesse cartão").className).toContain(
         "transactions-empty",
     );
 });
@@ -396,6 +400,7 @@ it("expands purchase details and exposes edit/delete and anticipation eligibilit
     expect(deleteButton.textContent?.trim()).toBe("");
     expect(deleteButton.querySelector(".lucide-trash")).toBeTruthy();
     expect(editButton.className).toContain("purchase-detail__icon-button");
+    expect(editButton.className).toContain("cursor-pointer");
     expect(deleteButton.className).toContain("purchase-detail__icon-button");
     expect(deleteButton.className).toContain("purchase-detail__delete-button");
     expect(editButton.closest(".purchase-detail__title-actions")).toBeTruthy();
@@ -413,6 +418,7 @@ it("expands purchase details and exposes edit/delete and anticipation eligibilit
     ).toContain("Em aberto");
     const anticipationButton = screen.getByRole("button", { name: "Antecipar parcelas" });
     expect(anticipationButton).toBeTruthy();
+    expect(anticipationButton.className).toContain("cursor-pointer");
     expect(anticipationButton.closest(".purchase-detail__title-actions")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Antecipar parcela 2" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Editar compra" }));

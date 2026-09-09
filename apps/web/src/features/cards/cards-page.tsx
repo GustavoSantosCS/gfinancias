@@ -521,7 +521,7 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                         <div
                                             aria-expanded={expandedPurchaseId === entry.purchaseId}
                                             aria-label={"Abrir detalhes de " + entry.title}
-                                            className="transactions-table__row transactions-table__row--interactive"
+                                            className="transactions-table__row transactions-table__row--interactive cursor-pointer"
                                             key={entry.id}
                                             onClick={() => setExpandedPurchaseId(entry.purchaseId)}
                                             onKeyDown={(event) => {
@@ -534,7 +534,9 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                             tabIndex={0}
                                         >
                                             <span>{entry.title}</span>
-                                            <strong>{money.format(entry.amount / 100)}</strong>
+                                            <strong className="transactions-table__amount">
+                                                {money.format(entry.amount / 100)}
+                                            </strong>
                                             <span>
                                                 {entry.kind === "ANTICIPATION"
                                                     ? "Antecipação"
@@ -605,9 +607,7 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                     )}
                                 </div>
                             ) : (
-                                <p className="transactions-empty">
-                                    Nenhuma compra nesta competência.
-                                </p>
+                                <p className="transactions-empty">Nenhuma compra nesse cartão</p>
                             )}
                         </section>
                     </>
@@ -1088,7 +1088,7 @@ function PurchaseDetail({
                             <div className="purchase-detail__title-actions">
                                 <Button
                                     aria-label="Antecipar parcelas"
-                                    className="purchase-detail__icon-button"
+                                    className="purchase-detail__icon-button cursor-pointer"
                                     disabled={!canAnticipate}
                                     onClick={onAnticipate}
                                     size="icon"
@@ -1100,7 +1100,7 @@ function PurchaseDetail({
                                 </Button>
                                 <Button
                                     aria-label="Editar compra"
-                                    className="purchase-detail__icon-button"
+                                    className="purchase-detail__icon-button cursor-pointer"
                                     disabled={
                                         detail.anticipations.length > 0 ||
                                         detail.card.status === "ARCHIVED"
