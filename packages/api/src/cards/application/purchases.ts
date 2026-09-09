@@ -19,23 +19,25 @@ async function requirePurchase(repository: CardsRepository, id: string) {
     return purchase;
 }
 
-export async function createPurchase(repository: CardsRepository, input: CreatePurchaseInput) {
-    await requireActiveCard(
-        repository,
-        input.cardId,
-        "Cartões arquivados não podem receber compras.",
-    );
+export async function createPurchase(unitOfWork: CardsUnitOfWork, input: CreatePurchaseInput) {
+    return unitOfWork.run(async (repository) => {
+        await requireActiveCard(
+            repository,
+            input.cardId,
+            "Cartões arquivados não podem receber compras.",
+        );
 
-    return repository.createPurchase({
-        data: {
-            amount: input.amount,
-            cardId: input.cardId,
-            description: input.description ? normalizeCardText(input.description) : null,
-            installments: input.installments,
-            purchaseDate: parseCivilDateAtNoon(input.purchaseDate),
-            title: normalizeCardText(input.title),
-        },
-        entries: createInstallments(input),
+        return repository.createPurchase({
+            data: {
+                amount: input.amount,
+                cardId: input.cardId,
+                description: input.description ? normalizeCardText(input.description) : null,
+                installments: input.installments,
+                purchaseDate: parseCivilDateAtNoon(input.purchaseDate),
+                title: normalizeCardText(input.title),
+            },
+            entries: createInstallments(input),
+        });
     });
 }
 

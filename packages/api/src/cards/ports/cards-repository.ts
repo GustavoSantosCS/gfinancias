@@ -123,6 +123,9 @@ export interface CardsRepository {
     deleteInstallments(ids: string[]): Promise<void>;
     findCard(id: string): Promise<Card | null>;
     findCardByNormalizedName(normalizedName: string): Promise<Card | null>;
+    findAnticipation(
+        id: string,
+    ): Promise<(CardAnticipation & { entries: CardInstallment[] }) | null>;
     findPurchase(id: string): Promise<CardPurchaseDetails | null>;
     listCards(includeArchived: boolean): Promise<Card[]>;
     listPurchases(input: {

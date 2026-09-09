@@ -54,6 +54,9 @@ export async function anticipatePurchase(unitOfWork: CardsUnitOfWork, input: Ant
 
         await repository.deleteInstallments(prepared.originals.map((entry) => entry.id));
         await repository.createInstallments(entries);
-        return { ...anticipation, entries };
+        return repository.findAnticipation(anticipation.id).then((persisted) => {
+            if (!persisted) throw new PurchaseNotFoundError();
+            return persisted;
+        });
     });
 }

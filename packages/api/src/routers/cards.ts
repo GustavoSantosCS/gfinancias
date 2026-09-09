@@ -88,37 +88,37 @@ export const cardsRouter = router({
     create: publicProcedure
         .input(createCardSchema)
         .mutation(({ ctx, input }) =>
-            execute(() => createCard(createPrismaCardsRepository(ctx.db), input)),
+            execute(() => createCard(createPrismaCardsUnitOfWork(ctx.db), input)),
         ),
 
     update: publicProcedure
         .input(updateCardSchema)
         .mutation(({ ctx, input }) =>
-            execute(() => updateCard(createPrismaCardsRepository(ctx.db), input)),
+            execute(() => updateCard(createPrismaCardsUnitOfWork(ctx.db), input)),
         ),
 
     archive: publicProcedure
         .input(cardIdSchema)
         .mutation(({ ctx, input }) =>
-            execute(() => archiveCard(createPrismaCardsRepository(ctx.db), input.id)),
+            execute(() => archiveCard(createPrismaCardsUnitOfWork(ctx.db), input.id)),
         ),
 
     restore: publicProcedure
         .input(cardIdSchema)
         .mutation(({ ctx, input }) =>
-            execute(() => restoreCard(createPrismaCardsRepository(ctx.db), input.id)),
+            execute(() => restoreCard(createPrismaCardsUnitOfWork(ctx.db), input.id)),
         ),
 
     delete: publicProcedure
         .input(cardIdSchema)
         .mutation(({ ctx, input }) =>
-            execute(() => removeCard(createPrismaCardsRepository(ctx.db), input.id)),
+            execute(() => removeCard(createPrismaCardsUnitOfWork(ctx.db), input.id)),
         ),
 
     createPurchase: publicProcedure
         .input(createPurchaseSchema)
         .mutation(({ ctx, input }) =>
-            execute(() => createPurchase(createPrismaCardsRepository(ctx.db), input)),
+            execute(() => createPurchase(createPrismaCardsUnitOfWork(ctx.db), input)),
         ),
 
     listPurchases: publicProcedure

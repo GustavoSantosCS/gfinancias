@@ -81,6 +81,13 @@ export function createPrismaCardsRepository(db: CardsDatabase): CardsRepository 
             return db.card.findUnique({ where: { normalizedName } });
         },
 
+        async findAnticipation(id: string) {
+            return db.cardAnticipation.findUnique({
+                include: { entries: { orderBy: { number: "asc" } } },
+                where: { id },
+            });
+        },
+
         async findPurchase(id: string): Promise<CardPurchaseDetails | null> {
             return db.cardPurchase.findUnique({
                 include: {
