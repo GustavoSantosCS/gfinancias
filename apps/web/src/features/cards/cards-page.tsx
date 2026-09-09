@@ -12,7 +12,7 @@ import {
     Trash2,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { type FormEvent, useId, useMemo, useState } from "react";
+import { type ComponentType, type FormEvent, type SVGProps, useId, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@gfinancias/ui/components/button";
@@ -24,6 +24,13 @@ import { InputLabel } from "@gfinancias/ui/components/input-label";
 import { Label } from "@gfinancias/ui/components/label";
 import { Select } from "@gfinancias/ui/components/select";
 import { Textarea } from "@gfinancias/ui/components/textarea";
+import {
+    AmericanExpress,
+    Elo,
+    Hipercard,
+    Mastercard,
+    Visa,
+} from "react-svg-credit-card-payment-icons/icons/logo";
 
 import { trpc } from "@/utils/trpc";
 
@@ -36,6 +43,31 @@ const brandLabels = {
     OTHER: "Outra",
     VISA: "Visa",
 } as const;
+type CardBrand = keyof typeof brandLabels;
+const brandIcons: Record<Exclude<CardBrand, "OTHER">, ComponentType<SVGProps<SVGSVGElement>>> = {
+    AMERICAN_EXPRESS: AmericanExpress,
+    ELO: Elo,
+    HIPERCARD: Hipercard,
+    MASTERCARD: Mastercard,
+    VISA: Visa,
+};
+
+function CardBrandIcon({ brand }: { brand: CardBrand }) {
+    const label = "Bandeira " + brandLabels[brand];
+    if (brand === "OTHER") {
+        return (
+            <span aria-label={label} className="credit-card__brand-icon" role="img">
+                <CreditCard aria-hidden="true" size={22} />
+            </span>
+        );
+    }
+    const Icon = brandIcons[brand];
+    return (
+        <span aria-label={label} className="credit-card__brand-icon" role="img">
+            <Icon aria-hidden="true" height={24} width={38} />
+        </span>
+    );
+}
 
 function formatDayAndMonth(day: number, month: number) {
     return String(day).padStart(2, "0") + "/" + String(month).padStart(2, "0");
@@ -344,7 +376,6 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                     <section aria-label="Cartões cadastrados" className="cards-grid">
                         {cards.map((card) => {
                             const selected = selectedCardId === card.id;
-                            const brand = card.brand ? brandLabels[card.brand] : null;
                             const spending = monthlySpendingByCard.get(card.id);
                             const billingDates =
                                 card.closingDay && card.dueDay
@@ -387,19 +418,16 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                 >
                                     <div>
                                         {card.status === "ARCHIVED" && <span>ARQUIVADO</span>}
-                                        <CreditCard size={22} />
+                                        {card.brand ? (
+                                            <CardBrandIcon brand={card.brand} />
+                                        ) : (
+                                            <CreditCard size={22} />
+                                        )}
                                     </div>
                                     <strong>{card.name}</strong>
                                     <div className="credit-card__metadata">
                                         <small>
-                                            {card.limit || brand
-                                                ? [
-                                                      card.limit && money.format(card.limit / 100),
-                                                      brand,
-                                                  ]
-                                                      .filter(Boolean)
-                                                      .join(" - ")
-                                                : "\u00a0"}
+                                            {card.limit ? money.format(card.limit / 100) : "\u00a0"}
                                         </small>
                                         <small>
                                             {card.lastDigits ? "•••• " + card.lastDigits : "\u00a0"}

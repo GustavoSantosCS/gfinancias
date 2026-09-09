@@ -972,6 +972,17 @@ button {
   font-weight: 800;
   letter-spacing: 0.14em;
 }
+.credit-card__brand-icon {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+}
+.credit-card__brand-icon svg {
+  display: block;
+  max-width: 42px;
+}
 .credit-card > strong {
   display: block;
   position: relative;

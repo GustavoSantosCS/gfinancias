@@ -120,8 +120,9 @@ it("shows monthly entries and opens the purchase form for active cards", async (
     render(<CardsPage />);
 
     expect(screen.getByRole("button", { name: "Filtrar por Visa" }).textContent).toContain(
-        "R$ 1.111,11 - Visa",
+        "R$ 1.111,11",
     );
+    expect(screen.getByLabelText("Bandeira Visa")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Filtrar por Visa" }).textContent).toContain(
         "•••• 0000",
     );
