@@ -30,12 +30,13 @@
         "test:e2e:ui": "playwright test --ui",
         "test:e2e:install": "playwright install chromium",
         "test:coverage:backend": "vp test run --coverage apps/server/src/app.test.ts packages/db/src/index.test.ts packages/api/src/routers/cards.test.ts packages/api/src/cards/domain --coverage.include=apps/server/src/app.ts --coverage.include=packages/api/src/routers/index.ts --coverage.include=packages/api/src/routers/cards.ts --coverage.include=packages/api/src/cards/**/*.ts --coverage.include=packages/api/src/context.ts --coverage.include=packages/db/src/index.ts --coverage.thresholds.lines=60 --coverage.thresholds.statements=60 --coverage.thresholds.functions=60 --coverage.thresholds.branches=60",
-        "test:coverage:frontend": "vp test run --project react --coverage tests/components/controls.test.tsx tests/components/stories.test.tsx apps/web/src/features/cards/cards-page.test.tsx --coverage.include=packages/ui/src/components/button.tsx --coverage.include=packages/ui/src/components/input.tsx --coverage.include=apps/web/src/features/cards/cards-page.tsx --coverage.thresholds.lines=60 --coverage.thresholds.statements=60 --coverage.thresholds.functions=60 --coverage.thresholds.branches=60",
+        "test:coverage:frontend": "vp test run --coverage tests/components/controls.test.tsx tests/components/stories.test.tsx apps/web/src/features/cards apps/web/src/lib --coverage.include=packages/ui/src/components/button.tsx --coverage.include=packages/ui/src/components/input.tsx --coverage.include=apps/web/src/features/cards/**/*.tsx --coverage.include=apps/web/src/features/cards/**/*.ts --coverage.include=apps/web/src/lib/*.ts --coverage.exclude=**/test/** --coverage.thresholds.lines=80 --coverage.thresholds.statements=80 --coverage.thresholds.functions=80 --coverage.thresholds.branches=80",
         "test:coverage": "npm run test:coverage:frontend && npm run test:coverage:backend",
         "test:ci": "npm run check && npm run test:coverage",
         "storybook": "storybook dev -p 6006 --no-open",
         "build-storybook": "storybook build",
-        "lint:format:source": "node scripts/lint-format-source.mjs"
+        "lint:format:source": "node scripts/lint-format-source.mjs",
+        "test:e2e:cards": "node scripts/run-cards-e2e.mjs"
     },
     "dependencies": {
         "@gfinancias/env": "*",

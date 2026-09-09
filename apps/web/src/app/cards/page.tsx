@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { PrototypeHome } from "@/app/page";
+import { CardsLoading } from "@/features/cards/components/cards-loading";
 import { CardsPage } from "@/features/cards/cards-page";
 
 export default function Page() {
@@ -8,7 +9,9 @@ export default function Page() {
         <Suspense
             fallback={
                 <main className="main">
-                    <p>Carregando cartões…</p>
+                    <div className="content">
+                        <CardsLoading />
+                    </div>
                 </main>
             }
         >
