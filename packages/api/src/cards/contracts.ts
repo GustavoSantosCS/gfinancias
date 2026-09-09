@@ -105,3 +105,11 @@ export const updatePurchaseSchema = z.object({
     remainderInstallment: z.number().int().min(1).max(12).optional(),
     title: z.string().trim().min(1).max(60).optional(),
 });
+
+export type CreateCardInput = z.infer<typeof createCardSchema>;
+export type UpdateCardInput = z.infer<typeof updateCardSchema>;
+export type CardsListInput = z.infer<typeof cardsListSchema>;
+export type CreatePurchaseInput = z.infer<typeof createPurchaseSchema>;
+export type ListPurchasesInput = z.infer<typeof listPurchasesSchema>;
+export type AnticipateInput = z.infer<typeof anticipateSchema>;
+export type UpdatePurchaseInput = z.infer<typeof updatePurchaseSchema>;
