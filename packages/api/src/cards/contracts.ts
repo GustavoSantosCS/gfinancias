@@ -47,19 +47,22 @@ export const createPurchaseSchema = z
         focusYear: z.number().int().min(2000).max(9999),
         amount: z.number().int().positive(),
         cardId: z.string().min(1),
-        description: z.string().trim().min(1).max(500),
+        description: z.string().trim().max(10000).optional(),
+        title: z.string().trim().min(1).max(60),
         installments: z.number().int().min(1).max(12),
         purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-        remainderInstallment: z.number().int().min(1).max(12),
+        remainderInstallment: z.number().int().min(1).max(12).optional(),
     })
     .refine(
-        (input) => input.remainderInstallment <= input.installments,
+        (input) =>
+            input.remainderInstallment === undefined ||
+            input.remainderInstallment <= input.installments,
         "Invalid remainder installment",
     );
 
 export const listPurchasesSchema = periodSchema.extend({
     cardId: z.string().min(1).optional(),
-    description: z.string().max(500).optional(),
+    title: z.string().max(60).optional(),
     status: z.enum(["ALL", "ACTIVE", "ARCHIVED"]).default("ALL"),
 });
 
@@ -90,7 +93,7 @@ export const purchaseIdSchema = z.object({ id: z.string().min(1) });
 export const updatePurchaseSchema = z.object({
     amount: z.number().int().positive().optional(),
     cardId: z.string().min(1).optional(),
-    description: z.string().trim().min(1).max(500).optional(),
+    description: z.string().trim().max(500).optional(),
     focusMonth: z.number().int().min(1).max(12).optional(),
     focusYear: z.number().int().min(2000).max(9999).optional(),
     id: z.string().min(1),
@@ -100,4 +103,5 @@ export const updatePurchaseSchema = z.object({
         .regex(/^\d{4}-\d{2}-\d{2}$/)
         .optional(),
     remainderInstallment: z.number().int().min(1).max(12).optional(),
+    title: z.string().trim().min(1).max(60).optional(),
 });

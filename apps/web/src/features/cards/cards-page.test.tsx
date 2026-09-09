@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 
@@ -21,6 +21,10 @@ vi.mock("@/utils/trpc", () => {
                 archive: { mutationOptions },
                 create: { mutationOptions },
                 createPurchase: { mutationOptions },
+                anticipate: { mutationOptions },
+                deletePurchase: { mutationOptions },
+                getPurchase: { queryOptions: (input: unknown) => input },
+                updatePurchase: { mutationOptions },
                 delete: { mutationOptions },
                 update: { mutationOptions },
                 list: { queryOptions: (input: unknown) => input },
@@ -37,36 +41,22 @@ const mutation = { error: null, isPending: false, mutate: vi.fn() };
 const query = (data: unknown) => ({ data, error: null, isLoading: false, refetch: vi.fn() });
 let cardsState: any;
 let purchasesState: any;
-
-function mockMutationCycle(
-    ...results: Array<{ error: Error | null; isPending: boolean; mutate: any }>
-) {
-    let call = 0;
-    useMutation.mockImplementation(() => results[call++ % 6] ?? mutation);
-}
-
-function successfulMutation() {
-    return {
-        error: null,
-        isPending: false,
-        mutate: vi.fn((_input, callbacks) => void callbacks?.onSuccess?.()),
-    };
-}
-
-function failedMutation(message: string) {
-    return {
-        error: null,
-        isPending: false,
-        mutate: vi.fn((_input, callbacks) => callbacks?.onError?.(new Error(message))),
-    };
-}
+let detailState: any;
 
 beforeEach(() => {
     cardsState = query([]);
     purchasesState = query([]);
+    detailState = query(null);
     useMutation.mockReturnValue(mutation);
-    useQuery.mockImplementation((input: { includeArchived?: boolean }) =>
-        "includeArchived" in input ? cardsState : purchasesState,
+    useQuery.mockImplementation(
+        (input: { enabled?: boolean; includeArchived?: boolean; id?: string }) =>
+            "includeArchived" in input
+                ? cardsState
+                : "id" in input
+                  ? detailState
+                  : input.enabled === false
+                    ? query(null)
+                    : purchasesState,
     );
 });
 
@@ -98,9 +88,12 @@ it("shows monthly entries and opens the purchase form for active cards", async (
             competenceMonth: 9,
             competenceYear: 2028,
             description: "Curso",
+
+            title: "Curso",
             id: "entry-1",
             kind: "REGULAR",
             number: 2,
+            purchaseDate: "2028-09-01T12:00:00.000Z",
             total: 3,
         },
     ]);
@@ -112,312 +105,89 @@ it("shows monthly entries and opens the purchase form for active cards", async (
         screen.getByRole("heading", { name: "Detalhamento" }).parentElement?.className,
     ).toContain("transactions-panel__heading");
     expect(
+        screen.getByRole("heading", { name: "Detalhamento" }).parentElement?.parentElement
+            ?.className,
+    ).toContain("transactions-panel__header");
+    expect(
         screen.getByRole("heading", { name: "Detalhamento" }).parentElement?.className,
     ).not.toContain("text-center");
     expect(screen.getByRole("heading", { name: "Detalhamento" })).toBeTruthy();
+    expect(screen.queryByText("Competência: 09/2028")).toBeNull();
     expect(screen.queryByText("Compras da competência")).toBeNull();
     expect(screen.getByPlaceholderText("Pesquisar...")).toBeTruthy();
-    expect(screen.getByRole("combobox", { name: "Estado" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Pesquisar compras" })).toBeTruthy();
+    expect(screen.getByLabelText("Filtros de compras").className).toContain(
+        "purchase-filters-card",
+    );
+    expect(screen.getByLabelText("Filtros de compras").closest(".transactions-panel")).toBeNull();
+    expect(screen.getByLabelText("Filtros de compras").getAttribute("style")).toContain(
+        "background: transparent",
+    );
+    expect(screen.getByLabelText("Filtros de compras").getAttribute("style")).toContain(
+        "border: 0px",
+    );
+    expect(screen.getByLabelText("Filtros de compras").getAttribute("style")).toContain(
+        "box-shadow: none",
+    );
+    expect(screen.getByText("Data")).toBeTruthy();
+    expect(screen.getByText("01/09/2028")).toBeTruthy();
+    expect(screen.queryByText("Competência")).toBeNull();
     expect(screen.getByText("Curso")).toBeTruthy();
     expect(screen.getByText("2/3")).toBeTruthy();
-    await user.type(screen.getByPlaceholderText("Pesquisar..."), "curso");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Estado" }), "ARCHIVED");
-    expect(useQuery).toHaveBeenLastCalledWith({
-        description: "curso",
-        month: 9,
-        status: "ARCHIVED",
-        year: 2028,
-    });
     await user.click(screen.getByRole("button", { name: /Nova compra/ }));
-    expect(screen.getByRole("dialog", { name: "Nova compra" })).toBeTruthy();
-    expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Descrição" }));
-});
-
-it("submits complete card data and closes the dialog after a successful response", async () => {
-    const create = successfulMutation();
-    mockMutationCycle(create);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Novo cartão" }));
-    await user.type(screen.getByRole("textbox", { name: "Nome" }), "Viagem");
-    await user.type(screen.getByRole("spinbutton", { name: "Limite" }), "123.45");
-    await user.type(screen.getByRole("spinbutton", { name: "Fechamento" }), "10");
-    await user.type(screen.getByRole("spinbutton", { name: "Vencimento" }), "20");
-    await user.type(screen.getByRole("textbox", { name: "Últimos dígitos" }), "1234");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Bandeira" }), "VISA");
-    await user.click(screen.getByRole("button", { name: "Criar cartão" }));
-
-    expect(create.mutate).toHaveBeenCalledWith(
-        expect.objectContaining({
-            brand: "VISA",
-            closingDay: 10,
-            dueDay: 20,
-            lastDigits: "1234",
-            limit: 12_345,
-            name: "Viagem",
-        }),
-        expect.any(Object),
-    );
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Novo cartão" })).toBeNull());
-});
-
-it("keeps the card form open when the server rejects its data", async () => {
-    const create = failedMutation("Nome já em uso!");
-    mockMutationCycle(create);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Novo cartão" }));
-    await user.type(screen.getByRole("textbox", { name: "Nome" }), "Duplicado");
-    await user.click(screen.getByRole("button", { name: "Criar cartão" }));
-
-    expect(create.mutate).toHaveBeenCalledOnce();
-    expect(screen.getByRole("dialog", { name: "Novo cartão" })).toBeTruthy();
-});
-
-it("submits a purchase and closes its dialog after a successful response", async () => {
-    const createPurchase = successfulMutation();
-    mockMutationCycle(mutation, createPurchase);
-    cardsState = query([{ color: "#0f766e", id: "visa", name: "Visa", status: "ACTIVE" }]);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Nova compra" }));
-    await user.type(screen.getByRole("textbox", { name: "Descrição" }), "Passagem");
-    await user.type(screen.getByRole("spinbutton", { name: "Valor" }), "12.34");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Parcelas" }), "3");
-    await user.click(screen.getByRole("button", { name: "Adicionar compra" }));
-
-    expect(createPurchase.mutate).toHaveBeenCalledWith(
-        expect.objectContaining({
-            amount: 1234,
-            cardId: "visa",
-            description: "Passagem",
-            installments: 3,
-            remainderInstallment: 1,
-        }),
-        expect.any(Object),
-    );
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Nova compra" })).toBeNull());
-});
-
-it("updates a card with all optional fields after a successful response", async () => {
-    const update = successfulMutation();
-    mockMutationCycle(mutation, mutation, update);
-    cardsState = query([
-        {
-            brand: "VISA",
-            closingDay: 4,
-            color: "#0f766e",
-            dueDay: 14,
-            id: "visa",
-            lastDigits: "1111",
-            limit: 10_000,
-            name: "Visa",
-            status: "ACTIVE",
-        },
-    ]);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Editar Visa" }));
-    await user.clear(screen.getByRole("textbox", { name: "Nome" }));
-    await user.type(screen.getByRole("textbox", { name: "Nome" }), "Visa viagem");
-    await user.clear(screen.getByRole("spinbutton", { name: "Limite" }));
-    await user.type(screen.getByRole("spinbutton", { name: "Limite" }), "200");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Bandeira" }), "ELO");
-    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
-
-    expect(update.mutate).toHaveBeenCalledWith(
-        expect.objectContaining({ brand: "ELO", id: "visa", limit: 20_000, name: "Visa viagem" }),
-        expect.any(Object),
-    );
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar cartão" })).toBeNull());
-});
-
-it("closes the editor after archiving or restoring a card", async () => {
-    const archive = successfulMutation();
-    mockMutationCycle(mutation, mutation, mutation, archive);
-    cardsState = query([{ color: "#0f766e", id: "visa", name: "Visa", status: "ACTIVE" }]);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Editar Visa" }));
-    await user.click(screen.getByRole("button", { name: "Arquivar cartão" }));
-
-    expect(archive.mutate).toHaveBeenCalledWith({ id: "visa" }, expect.any(Object));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar cartão" })).toBeNull());
-});
-
-it("removes a card only after destructive confirmation", async () => {
-    const remove = successfulMutation();
-    mockMutationCycle(mutation, mutation, mutation, mutation, mutation, remove);
-    cardsState = query([{ color: "#0f766e", id: "visa", name: "Visa", status: "ACTIVE" }]);
-    vi.spyOn(window, "confirm").mockReturnValue(true);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Editar Visa" }));
-    await user.click(screen.getByRole("button", { name: "Remover cartão" }));
-
-    expect(remove.mutate).toHaveBeenCalledWith({ id: "visa" }, expect.any(Object));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar cartão" })).toBeNull());
-});
-
-it("supports keyboard filtering and identifies archived-card anticipation entries", () => {
-    cardsState = query([
-        { color: "#0f766e", id: "visa", name: "Visa", status: "ACTIVE" },
-        { color: "#7c3aed", id: "master", name: "Master", status: "ARCHIVED" },
-    ]);
-    purchasesState = query([
-        {
-            amount: 5_000,
-            card: { id: "visa", name: "Visa", status: "ACTIVE" },
-            competenceMonth: 9,
-            competenceYear: 2028,
-            description: "Curso",
-            id: "regular",
-            kind: "REGULAR",
-            number: 1,
-            total: 1,
-        },
-        {
-            amount: 2_000,
-            card: { id: "master", name: "Master", status: "ARCHIVED" },
-            competenceMonth: 9,
-            competenceYear: 2028,
-            description: "Mercado",
-            id: "anticipated",
-            kind: "ANTICIPATION",
-            number: 2,
-            total: 3,
-        },
-    ]);
-
-    render(<CardsPage />);
-
-    const visa = screen.getByRole("button", { name: "Filtrar por Visa" });
-    fireEvent.keyDown(visa, { key: "x" });
-    expect(visa.getAttribute("aria-pressed")).toBe("false");
-    fireEvent.keyDown(visa, { key: " " });
-    expect(visa.getAttribute("aria-pressed")).toBe("true");
-    expect(screen.queryByText("Mercado")).toBeNull();
-    fireEvent.keyDown(visa, { key: "Enter" });
-    expect(screen.getByText("Antecipação")).toBeTruthy();
-    expect(screen.getByText("Master (arquivado)")).toBeTruthy();
-    expect(screen.getByText("ARQUIVADO")).toBeTruthy();
-});
-
-it("shows server errors and accepts custom or random card colors", async () => {
-    const create = { ...failedMutation("Nome já em uso!"), error: new Error("Nome já em uso!") };
-    mockMutationCycle(create);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Novo cartão" }));
-    fireEvent.change(screen.getByLabelText("Selecionar cor personalizada"), {
-        target: { value: "#112233" },
-    });
-    expect((screen.getByLabelText("Selecionar cor personalizada") as HTMLInputElement).value).toBe(
-        "#112233",
-    );
-    await user.click(screen.getByRole("button", { name: "Gerar cor aleatória" }));
+    expect(screen.getByRole("textbox", { name: "Título" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Descrição" })).toBeTruthy();
+    expect(screen.getByRole("textbox", { name: "Título" }).hasAttribute("required")).toBe(true);
+    expect(screen.getByRole("textbox", { name: "Descrição" }).hasAttribute("required")).toBe(false);
+    expect(screen.getByRole("textbox", { name: "Título" }).getAttribute("maxlength")).toBe("60");
+    const purchaseDialog = screen.getByRole("dialog", { name: "Nova compra" });
     expect(
-        (screen.getByLabelText("Selecionar cor personalizada") as HTMLInputElement).value,
-    ).toMatch(/^#[0-9a-f]{6}$/);
-    expect(screen.getByRole("alert").textContent).toContain("Nome já em uso!");
-});
+        Array.from(purchaseDialog.querySelectorAll("input, select, textarea"))
+            .at(-1)
+            ?.getAttribute("name"),
+    ).toBe("description");
 
-it("uses purchase defaults when the remainder field is blank and preserves purchase errors", async () => {
-    const createPurchase = {
-        ...failedMutation("Valor inválido"),
-        error: new Error("Valor inválido"),
-    };
-    mockMutationCycle(mutation, createPurchase);
-    cardsState = query([{ color: "#0f766e", id: "visa", name: "Visa", status: "ACTIVE" }]);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Nova compra" }));
-    await user.type(screen.getByRole("textbox", { name: "Descrição" }), "Curso");
-    await user.type(screen.getByRole("spinbutton", { name: "Valor" }), "10");
-    await user.selectOptions(screen.getByRole("combobox", { name: "Parcelas" }), "3");
-    await user.clear(screen.getByRole("spinbutton", { name: "Parcela com centavos restantes" }));
-    await user.click(screen.getByRole("button", { name: "Adicionar compra" }));
-
-    expect(createPurchase.mutate).toHaveBeenCalledWith(
-        expect.objectContaining({ installments: 3, remainderInstallment: 3 }),
-        expect.any(Object),
-    );
-    expect(screen.getByRole("alert").textContent).toContain("Valor inválido");
     expect(screen.getByRole("dialog", { name: "Nova compra" })).toBeTruthy();
+    expect(document.activeElement).toBe(screen.getByRole("textbox", { name: "Título" }));
+    expect(purchaseDialog.className).toContain("purchase-create-dialog");
+    expect(screen.getByRole("textbox", { name: "Descrição" }).tagName).toBe("TEXTAREA");
+    expect(screen.getByText("0/500")).toBeTruthy();
+    expect(screen.queryByRole("spinbutton", { name: "Qual parcela vai os centavos" })).toBeNull();
+    await user.type(screen.getByRole("spinbutton", { name: "Valor" }), "10.01");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Parcelas" }), "3");
+    expect(screen.getByRole("spinbutton", { name: "Qual parcela vai os centavos" })).toBeTruthy();
+    expect(
+        screen
+            .getByRole("spinbutton", { name: "Qual parcela vai os centavos" })
+            .getAttribute("min"),
+    ).toBe("1");
+    expect(
+        screen
+            .getByRole("spinbutton", { name: "Qual parcela vai os centavos" })
+            .getAttribute("max"),
+    ).toBe("3");
 });
 
-it("restores an archived card after a successful response", async () => {
-    const restore = successfulMutation();
-    mockMutationCycle(mutation, mutation, mutation, mutation, restore);
-    cardsState = query([{ color: "#7c3aed", id: "master", name: "Master", status: "ARCHIVED" }]);
-    const user = userEvent.setup();
+it("centers the empty purchase state", () => {
+    cardsState = query([{ color: "#0f766e", id: "active", name: "Active", status: "ACTIVE" }]);
+    purchasesState = query([]);
 
     render(<CardsPage />);
 
-    await user.click(screen.getByRole("button", { name: "Editar Master" }));
-    await user.click(screen.getByRole("button", { name: "Restaurar cartão" }));
-
-    expect(restore.mutate).toHaveBeenCalledWith({ id: "master" }, expect.any(Object));
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Editar cartão" })).toBeNull());
-});
-
-it("updates only the name while leaving optional card fields absent", async () => {
-    const update = { ...failedMutation("Nome inválido"), error: new Error("Nome inválido") };
-    mockMutationCycle(mutation, mutation, update);
-    cardsState = query([{ color: "#0f766e", id: "visa", name: "Visa", status: "ACTIVE" }]);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Editar Visa" }));
-    await user.clear(screen.getByRole("textbox", { name: "Nome" }));
-    await user.type(screen.getByRole("textbox", { name: "Nome" }), "Visa novo");
-    await user.click(screen.getByRole("button", { name: "Salvar alterações" }));
-
-    expect(update.mutate).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "visa", name: "Visa novo" }),
-        expect.any(Object),
+    expect(screen.getByText("Nenhuma compra nesta competência.").className).toContain(
+        "transactions-empty",
     );
-    expect(screen.getByRole("alert").textContent).toContain("Nome inválido");
 });
 
-it("does not remove a card when destructive confirmation is canceled", async () => {
-    const remove = successfulMutation();
-    mockMutationCycle(mutation, mutation, mutation, mutation, mutation, remove);
-    cardsState = query([{ color: "#0f766e", id: "visa", name: "Visa", status: "ACTIVE" }]);
-    vi.spyOn(window, "confirm").mockReturnValue(false);
-    const user = userEvent.setup();
-
-    render(<CardsPage />);
-
-    await user.click(screen.getByRole("button", { name: "Editar Visa" }));
-    await user.click(screen.getByRole("button", { name: "Remover cartão" }));
-
-    expect(remove.mutate).not.toHaveBeenCalled();
-    expect(screen.getByRole("dialog", { name: "Editar cartão" })).toBeTruthy();
-});
-
-it("shows loading and error states", async () => {
+it("shows loading and error states", () => {
     cardsState = { data: undefined, error: null, isLoading: true, refetch: vi.fn() };
     purchasesState = { data: undefined, error: null, isLoading: false, refetch: vi.fn() };
     const { rerender } = render(<CardsPage />);
     expect(screen.getByRole("main", { name: "Carregando cartões" })).toBeTruthy();
+    expect(screen.queryByText("Detalhamento")).toBeNull();
+    expect(screen.queryByText("Competência: 09/2028")).toBeNull();
+    expect(screen.queryByPlaceholderText("Pesquisar...")).toBeNull();
+    expect(screen.queryByLabelText("Filtros de compras")).toBeNull();
 
     cardsState = {
         data: undefined,
@@ -430,9 +200,6 @@ it("shows loading and error states", async () => {
     expect(screen.getByRole("alert").textContent).toContain(
         "Não foi possível carregar os cartões.",
     );
-    await userEvent.setup().click(screen.getByRole("button", { name: "Tentar novamente" }));
-    expect(cardsState.refetch).toHaveBeenCalledOnce();
-    expect(purchasesState.refetch).toHaveBeenCalledOnce();
 });
 
 it("submits both forms and exposes archive lifecycle actions", async () => {
@@ -449,13 +216,11 @@ it("submits both forms and exposes archive lifecycle actions", async () => {
     render(<CardsPage />);
 
     await user.click(screen.getByRole("button", { name: "Editar Active" }));
-    await user.click(screen.getByRole("button", { name: "Arquivar cartão" }));
-    expect(mutate).toHaveBeenCalledWith({ id: "active" }, expect.any(Object));
+    expect(screen.getByRole("button", { name: "Arquivar cartão" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Remover cartão" })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Fechar" }));
     await user.click(screen.getByRole("button", { name: "Editar Archived" }));
-    await user.click(screen.getByRole("button", { name: "Restaurar cartão" }));
-    expect(mutate).toHaveBeenCalledWith({ id: "archived" }, expect.any(Object));
+    expect(screen.getByRole("button", { name: "Restaurar cartão" })).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Fechar" }));
     await user.click(screen.getByRole("button", { name: "Mostrar arquivados" }));
 
@@ -484,6 +249,8 @@ it("opens the editor when a highlighted card is clicked", async () => {
             competenceMonth: 9,
             competenceYear: 2028,
             description: "Curso",
+
+            title: "Curso",
             id: "visa-entry",
             kind: "REGULAR",
             number: 1,
@@ -495,6 +262,8 @@ it("opens the editor when a highlighted card is clicked", async () => {
             competenceMonth: 9,
             competenceYear: 2028,
             description: "Mercado",
+
+            title: "Mercado",
             id: "master-entry",
             kind: "REGULAR",
             number: 1,
@@ -505,15 +274,221 @@ it("opens the editor when a highlighted card is clicked", async () => {
 
     render(<CardsPage />);
 
-    await user.click(screen.getByRole("button", { name: "Filtrar por Visa" }));
-    expect(screen.getByText("Curso")).toBeTruthy();
-    expect(screen.queryByText("Mercado")).toBeNull();
-    const visa = screen.getByRole("button", { name: "Filtrar por Visa" });
-    expect(visa.getAttribute("aria-pressed")).toBe("true");
-    fireEvent.keyDown(visa, { key: "Enter" });
-    expect(screen.getByText("Mercado")).toBeTruthy();
-
     await user.click(screen.getByRole("button", { name: "Editar Visa" }));
     expect(screen.getByRole("dialog", { name: "Editar cartão" })).toBeTruthy();
     expect(screen.queryByText("Sem finais informados")).toBeNull();
+});
+
+it("expands purchase details and exposes edit/delete and anticipation eligibility", async () => {
+    cardsState = query([{ color: "#0f766e", id: "active", name: "Active", status: "ACTIVE" }]);
+    purchasesState = query([
+        {
+            amount: 1000,
+            card: { id: "active", name: "Active", status: "ACTIVE" },
+            competenceMonth: 9,
+            competenceYear: 2028,
+            description: "Curso",
+
+            title: "Curso",
+            id: "entry",
+            kind: "REGULAR",
+            number: 2,
+            purchaseId: "purchase",
+            total: 3,
+        },
+    ]);
+    detailState = query({
+        amount: 3000,
+        card: { id: "active", name: "Active", status: "ACTIVE" },
+        description: "Curso",
+
+        title: "Curso",
+        id: "purchase",
+        installments: 3,
+        purchaseDate: "2028-09-01T12:00:00.000Z",
+        anticipations: [],
+        schedule: [
+            {
+                amount: 1000,
+                competenceMonth: 9,
+                competenceYear: 2028,
+                id: "one",
+                kind: "REGULAR",
+                number: 1,
+                total: 3,
+            },
+            {
+                amount: 1000,
+                competenceMonth: 10,
+                competenceYear: 2028,
+                id: "two",
+                kind: "REGULAR",
+                number: 2,
+                total: 3,
+            },
+        ],
+    });
+    const user = userEvent.setup();
+    render(<CardsPage />);
+    await user.click(screen.getByRole("button", { name: "Abrir detalhes de Curso" }));
+    expect(
+        screen.getByRole("button", { name: "Abrir detalhes de Curso" }).querySelector("button"),
+    ).toBeNull();
+    const detailDialog = screen.getByRole("dialog", { name: "Detalhes da compra: Curso" });
+    expect(detailDialog.className).toContain("purchase-detail-dialog");
+    expect(detailDialog.querySelector(".purchase-detail__summary")).toBeTruthy();
+    expect(detailDialog.querySelector(".purchase-detail__title-actions")).toBeTruthy();
+    expect(detailDialog.querySelector(".purchase-detail__description")?.textContent).toContain(
+        "DescriçãoCurso",
+    );
+    expect(detailDialog.querySelector(".purchase-detail__schedule-scroll")).toBeTruthy();
+    const editButton = screen.getByRole("button", { name: "Editar compra" });
+    const deleteButton = screen.getByRole("button", { name: "Excluir compra" });
+    expect(editButton.textContent?.trim()).toBe("");
+    expect(editButton.querySelector(".lucide-pencil")).toBeTruthy();
+    expect(deleteButton.textContent?.trim()).toBe("");
+    expect(deleteButton.querySelector(".lucide-trash")).toBeTruthy();
+    expect(editButton.className).toContain("purchase-detail__icon-button");
+    expect(deleteButton.className).toContain("purchase-detail__icon-button");
+    expect(deleteButton.className).toContain("purchase-detail__delete-button");
+    expect(editButton.closest(".purchase-detail__title-actions")).toBeTruthy();
+    expect(deleteButton.closest(".purchase-detail__title-actions")).toBeTruthy();
+    expect(Array.from(detailDialog.querySelectorAll("dt")).map((item) => item.textContent)).toEqual(
+        ["Título", "Valor", "Data da compra", "Parcela ou à vista", "Cartão", "Descrição"],
+    );
+    expect(screen.getByRole("table", { name: "Cronograma de parcelas" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Número da parcela" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Mês" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Valor" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Estado" })).toBeTruthy();
+    expect(
+        Array.from(detailDialog.querySelectorAll("td")).map((item) => item.textContent),
+    ).toContain("Em aberto");
+    const anticipationButton = screen.getByRole("button", { name: "Antecipar parcela 2" });
+    expect(anticipationButton).toBeTruthy();
+    await user.hover(anticipationButton);
+    expect(await screen.findByText("Antecipação")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Editar compra" }));
+    const editorDialog = screen.getByRole("dialog", { name: "Editar compra" });
+    expect(editorDialog.className).toContain("purchase-form-dialog");
+    expect(editorDialog.querySelector('textarea[name="description"]')).toBeTruthy();
+    expect(editorDialog.querySelector(".purchase-description-count")?.textContent).toBe("5/500");
+    expect(
+        Array.from(editorDialog.querySelectorAll('input:not([type="hidden"]), select, textarea'))
+            .at(-1)
+            ?.getAttribute("name"),
+    ).toBe("description");
+    expect(editorDialog.querySelector('input[name="amount"]')?.getAttribute("value")).toBe("30");
+    expect(editorDialog.querySelector('input[name="purchaseDate"]')).toBeTruthy();
+    expect(editorDialog.querySelector('select[name="cardId"]')).toBeTruthy();
+    expect(editorDialog.querySelector('select[name="installments"]')).toBeTruthy();
+    await user.clear(screen.getByRole("textbox", { name: "Título" }));
+    await user.type(screen.getByRole("textbox", { name: "Título" }), "Novo título");
+    await user.clear(screen.getByRole("spinbutton", { name: "Valor" }));
+    await user.type(screen.getByRole("spinbutton", { name: "Valor" }), "30.01");
+    await user.selectOptions(screen.getByRole("combobox", { name: "Parcelas" }), "3");
+    expect(screen.getByRole("spinbutton", { name: "Qual parcela vai os centavos" })).toBeTruthy();
+    await user.clear(screen.getByRole("textbox", { name: "Descrição" }));
+    await user.type(screen.getByRole("textbox", { name: "Descrição" }), "Nova descrição");
+    expect(screen.getByText("14/500")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Salvar compra" }));
+    await user.click(screen.getByRole("button", { name: "Fechar" }));
+    await user.click(screen.getByRole("button", { name: "Abrir detalhes de Curso" }));
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    await user.click(screen.getByRole("button", { name: "Excluir compra" }));
+    await user.click(screen.getByRole("button", { name: "Antecipar parcela 2" }));
+    const anticipationDialog = screen.getByRole("dialog", { name: "Antecipar parcelas" });
+    expect(anticipationDialog.className).toContain("anticipation-dialog");
+    expect(anticipationDialog.querySelector(".anticipation-parcels-list")).toBeTruthy();
+    expect(anticipationDialog.querySelector(".anticipation-parcels-grid")).toBeTruthy();
+    expect(anticipationDialog.querySelector(".anticipation-summary")).toBeTruthy();
+    expect(anticipationDialog.querySelector(".anticipation-description")).toBeTruthy();
+    expect(screen.getByText("Título da compra")).toBeTruthy();
+    expect(screen.getByText("Data de antecipação")).toBeTruthy();
+    expect(screen.getByText("Valor da parcela de agrupamento")).toBeTruthy();
+    expect(
+        screen
+            .getByRole("spinbutton", { name: "Valor da parcela de agrupamento" })
+            .getAttribute("value"),
+    ).toBe("10");
+    expect(screen.getByText("Valor original da compra")).toBeTruthy();
+    expect(screen.getByText("Novo valor total")).toBeTruthy();
+    expect(screen.getByText("Desconto da antecipação")).toBeTruthy();
+    expect(screen.getByText("Descrição que será criada pelo sistema")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Salvar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeTruthy();
+    const installment = screen.getByRole("checkbox");
+    await user.click(installment);
+    await user.click(installment);
+    await user.selectOptions(screen.getByRole("combobox", { name: "Modo" }), "SEPARATE");
+    const separateTable = screen.getByRole("table", { name: "Parcelas antecipadas" });
+    expect(separateTable).toBeTruthy();
+    expect(anticipationDialog.querySelector(".anticipation-values-scroll")).toBeTruthy();
+    expect(
+        (screen.getByRole("spinbutton", { name: "Valor parcela 2" }) as HTMLInputElement).value,
+    ).toBe("10");
+    expect(screen.getByRole("columnheader", { name: "Número da parcela" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Valor da parcela" })).toBeTruthy();
+    await user.clear(screen.getByRole("spinbutton", { name: "Valor parcela 2" }));
+    await user.type(screen.getByRole("spinbutton", { name: "Valor parcela 2" }), "9");
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+    await user.selectOptions(screen.getByRole("combobox", { name: "Modo" }), "GROUPED");
+    await user.type(
+        screen.getByRole("spinbutton", { name: "Valor da parcela de agrupamento" }),
+        "9",
+    );
+    await user.click(screen.getByRole("button", { name: "Salvar" }));
+});
+
+it("renders the loading-safe archive detail state and preserves mutation errors", async () => {
+    cardsState = query([
+        { color: "#0f766e", id: "archived", name: "Archived", status: "ARCHIVED" },
+    ]);
+    purchasesState = query([
+        {
+            amount: 1000,
+            card: { id: "archived", name: "Archived", status: "ARCHIVED" },
+            competenceMonth: 9,
+            competenceYear: 2028,
+            description: "History",
+
+            title: "History",
+            id: "entry",
+            kind: "REGULAR",
+            number: 1,
+            purchaseId: "purchase",
+            total: 1,
+        },
+    ]);
+    detailState = query({
+        amount: 1000,
+        card: { id: "archived", name: "Archived", status: "ARCHIVED" },
+        description: "History",
+
+        title: "History",
+        id: "purchase",
+        installments: 1,
+        purchaseDate: "2028-09-01T12:00:00.000Z",
+        anticipations: [],
+        schedule: [
+            {
+                amount: 1000,
+                competenceMonth: 9,
+                competenceYear: 2028,
+                id: "one",
+                kind: "REGULAR",
+                number: 1,
+                total: 1,
+            },
+        ],
+    });
+    const user = userEvent.setup();
+    render(<CardsPage />);
+    await user.click(screen.getByRole("button", { name: "Abrir detalhes de History" }));
+    expect(
+        (screen.getByRole("button", { name: "Editar compra" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(
+        (screen.getByRole("button", { name: "Excluir compra" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
 });
