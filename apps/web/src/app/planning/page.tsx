@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { Plus } from "lucide-react";
+import { Button } from "@gfinancias/ui/components/button";
 
 import { PrototypeHome } from "@/app/page";
 
@@ -22,9 +23,9 @@ function PlanningLoadingFallback() {
                         <p>Organize cada entrada e dê um destino ao dinheiro antes de gastar.</p>
                     </div>
                     <div className="heading-actions">
-                        <button className="secondary-button" disabled type="button">
+                        <Button disabled type="button" variant="default">
                             <Plus size={16} /> Criar fase
-                        </button>
+                        </Button>
                     </div>
                 </section>
                 <section

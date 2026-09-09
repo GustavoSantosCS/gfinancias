@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
+
 import { Button } from "../src/components/button";
 
 const meta = {
@@ -9,9 +10,8 @@ const meta = {
     argTypes: {
         variant: {
             control: "select",
-            options: ["default", "outline", "secondary", "ghost", "destructive", "link"],
+            options: ["primary", "default", "danger", "warning"],
         },
-        size: { control: "select", options: ["default", "xs", "sm", "lg"] },
         disabled: { control: "boolean" },
     },
 } satisfies Meta<typeof Button>;
@@ -19,10 +19,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = { name: "Padrão" };
-export const Outline: Story = { name: "Contorno", args: { variant: "outline" } };
-export const Destructive: Story = {
-    name: "Destrutivo",
-    args: { variant: "destructive", children: "Excluir" },
+export const Primary: Story = { name: "Principal", args: { variant: "primary" } };
+export const Default: Story = {
+    name: "Padrão",
+    args: { variant: "default" },
 };
-export const Disabled: Story = { name: "Desabilitado", args: { disabled: true } };
+export const Danger: Story = {
+    name: "Perigo",
+    args: { children: "Remover cartão", variant: "danger" },
+};
+export const Warning: Story = {
+    name: "Aviso",
+    args: { children: "Arquivar cartão", variant: "warning" },
+};
+export const Disabled: Story = {
+    name: "Desabilitado",
+    args: { disabled: true, variant: "primary" },
+};

@@ -23,6 +23,25 @@ enum ExpenseCategory {
   INVESTMENT
 }
 
+enum CardStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum CardBrand {
+  VISA
+  MASTERCARD
+  ELO
+  AMERICAN_EXPRESS
+  HIPERCARD
+  OTHER
+}
+
+enum InstallmentKind {
+  REGULAR
+  ANTICIPATION
+}
+
 model MonthlyPlan {
   id        String          @id @default(cuid())
   year      Int
@@ -73,4 +92,70 @@ model PlannedExpense {
   phase     PlanningPhase   @relation(fields: [phaseId], references: [id], onDelete: Cascade)
 
   @@index([phaseId])
+}
+
+model Card {
+  id             String          @id @default(cuid())
+  name           String
+  normalizedName String          @unique
+  color          String
+  limit          Int?
+  closingDay     Int?
+  dueDay         Int?
+  lastDigits     String?
+  brand          CardBrand?
+  status         CardStatus      @default(ACTIVE)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  purchases      CardPurchase[]
+}
+
+model CardPurchase {
+  id            String             @id @default(cuid())
+  cardId        String
+  amount        Int
+  title         String
+  description   String?
+  purchaseDate  DateTime
+  installments  Int
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  card          Card               @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  entries       CardInstallment[]
+  anticipations CardAnticipation[]
+
+  @@index([cardId])
+}
+
+model CardAnticipation {
+  id         String             @id @default(cuid())
+  purchaseId String
+  date       DateTime
+  mode       String
+  description String
+  snapshot   String
+  createdAt  DateTime           @default(now())
+  purchase   CardPurchase       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  entries    CardInstallment[]
+
+  @@index([purchaseId])
+}
+
+model CardInstallment {
+  id              String            @id @default(cuid())
+  purchaseId      String
+  anticipationId  String?
+  number          Int
+  total           Int
+  amount          Int
+  competenceYear  Int
+  competenceMonth Int
+  kind            InstallmentKind  @default(REGULAR)
+  createdAt       DateTime          @default(now())
+  purchase        CardPurchase      @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  anticipation    CardAnticipation? @relation(fields: [anticipationId], references: [id], onDelete: Cascade)
+
+  @@index([competenceYear, competenceMonth])
+  @@index([purchaseId])
+  @@index([anticipationId])
 }
