@@ -11,7 +11,7 @@ describe("card presentation components", () => {
         const user = userEvent.setup();
         render(<CardFormDialog onClose={vi.fn()} onSubmit={vi.fn()} pending={false} />);
         await user.click(screen.getByRole("button", { name: "Criar cartão" }));
-        expect(screen.getByRole("textbox", { name: "Nome" })).toBeRequired();
+        expect(screen.getByRole("textbox", { name: "Nome" }).hasAttribute("required")).toBe(true);
     });
 
     it("renders parser errors for whitespace-only card names", async () => {
@@ -20,13 +20,39 @@ describe("card presentation components", () => {
         await user.type(screen.getByRole("textbox", { name: "Nome" }), "   ");
         await user.click(screen.getByRole("button", { name: "Criar cartão" }));
         expect(screen.getByRole("alert").textContent).toContain("valor válido");
-        expect(screen.getByRole("textbox", { name: "Nome" })).toHaveAttribute("aria-invalid", "true");
+        expect(screen.getByRole("textbox", { name: "Nome" }).getAttribute("aria-invalid")).toBe(
+            "true",
+        );
     });
 
     it("renders archived card actions and keyboard selection", async () => {
         const onEdit = vi.fn();
         const onSelect = vi.fn();
-        render(<CardGrid cards={[{ color: "#123456", id: "archived", name: "Arquivado", status: "ARCHIVED" }]} month={9} selectedCardId={null} spendingByCard={new Map()} onEdit={onEdit} onSelect={onSelect} />);
+        render(
+            <CardGrid
+                cards={[
+                    {
+                        brand: null,
+                        closingDay: null,
+                        color: "#123456",
+                        createdAt: "2028-01-01",
+                        dueDay: null,
+                        id: "archived",
+                        lastDigits: null,
+                        limit: null,
+                        name: "Arquivado",
+                        normalizedName: "arquivado",
+                        status: "ARCHIVED",
+                        updatedAt: "2028-01-01",
+                    },
+                ]}
+                month={9}
+                selectedCardId={null}
+                spendingByCard={new Map()}
+                onEdit={onEdit}
+                onSelect={onSelect}
+            />,
+        );
         const card = screen.getByRole("button", { name: "Filtrar por Arquivado" });
         expect(screen.getByText("ARQUIVADO")).toBeTruthy();
         card.focus();

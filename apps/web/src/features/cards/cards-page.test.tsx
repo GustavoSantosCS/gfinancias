@@ -587,38 +587,63 @@ it("renders the loading-safe archive detail state and preserves mutation errors"
     ).toBe(true);
 });
 
-
 it("supports keyboard card selection and controlled purchase filters", async () => {
     cardsState = query([
         { color: "#0f766e", id: "active", name: "Active", status: "ACTIVE" },
         { color: "#7c3aed", id: "archived", name: "Archived", status: "ARCHIVED" },
     ]);
     purchasesState = query([
-        { amount: 1000, card: { id: "active", name: "Active", status: "ACTIVE" }, competenceMonth: 9, competenceYear: 2028, title: "Curso", id: "entry", kind: "REGULAR", number: 1, total: 1 },
-        { amount: 2000, card: { id: "archived", name: "Archived", status: "ARCHIVED" }, competenceMonth: 9, competenceYear: 2028, title: "Histórico", id: "archived-entry", kind: "REGULAR", number: 1, total: 1 },
+        {
+            amount: 1000,
+            card: { id: "active", name: "Active", status: "ACTIVE" },
+            competenceMonth: 9,
+            competenceYear: 2028,
+            title: "Curso",
+            id: "entry",
+            kind: "REGULAR",
+            number: 1,
+            total: 1,
+        },
+        {
+            amount: 2000,
+            card: { id: "archived", name: "Archived", status: "ARCHIVED" },
+            competenceMonth: 9,
+            competenceYear: 2028,
+            title: "Histórico",
+            id: "archived-entry",
+            kind: "REGULAR",
+            number: 1,
+            total: 1,
+        },
     ]);
     const user = userEvent.setup();
     render(<CardsPage />);
     const active = screen.getByRole("button", { name: "Filtrar por Active" });
     active.focus();
     await user.keyboard("{Enter}");
-    expect(active).toHaveAttribute("aria-pressed", "true");
+    expect(active.getAttribute("aria-pressed")).toBe("true");
     expect(screen.queryByText("Histórico")).toBeNull();
     await user.type(screen.getByRole("textbox", { name: "Pesquisar compras" }), "Curso");
     await user.selectOptions(screen.getByRole("combobox", { name: "Estado" }), "ACTIVE");
-    expect(screen.getByRole("textbox", { name: "Pesquisar compras" })).toHaveValue("Curso");
-    expect(screen.getByRole("combobox", { name: "Estado" })).toHaveValue("ACTIVE");
+    expect(
+        (screen.getByRole("textbox", { name: "Pesquisar compras" }) as HTMLInputElement).value,
+    ).toBe("Curso");
+    expect((screen.getByRole("combobox", { name: "Estado" }) as HTMLSelectElement).value).toBe(
+        "ACTIVE",
+    );
 });
 
 it("keeps archived card actions distinct and handles space-key selection", async () => {
-    cardsState = query([{ color: "#7c3aed", id: "archived", name: "Archived", status: "ARCHIVED" }]);
+    cardsState = query([
+        { color: "#7c3aed", id: "archived", name: "Archived", status: "ARCHIVED" },
+    ]);
     purchasesState = query([]);
     const user = userEvent.setup();
     render(<CardsPage />);
     const card = screen.getByRole("button", { name: "Filtrar por Archived" });
     card.focus();
     await user.keyboard(" ");
-    expect(card).toHaveAttribute("aria-pressed", "true");
+    expect(card.getAttribute("aria-pressed")).toBe("true");
     await user.click(screen.getByRole("button", { name: "Editar Archived" }));
     expect(screen.getByRole("button", { name: "Restaurar cartão" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Arquivar cartão" })).toBeNull();
