@@ -983,11 +983,17 @@ button {
   display: block;
   max-width: 42px;
 }
-.credit-card > strong {
-  display: block;
+.credit-card__name-row {
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 27px;
+}
+.credit-card__name-row > strong {
+  display: block;
   font-family: Georgia, serif;
   font-size: 25px;
   font-weight: 500;

@@ -418,13 +418,12 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                 >
                                     <div>
                                         {card.status === "ARCHIVED" && <span>ARQUIVADO</span>}
-                                        {card.brand ? (
-                                            <CardBrandIcon brand={card.brand} />
-                                        ) : (
-                                            <CreditCard size={22} />
-                                        )}
+                                        <CreditCard size={22} />
                                     </div>
-                                    <strong>{card.name}</strong>
+                                    <div className="credit-card__name-row">
+                                        <strong>{card.name}</strong>
+                                        {card.brand && <CardBrandIcon brand={card.brand} />}
+                                    </div>
                                     <div className="credit-card__metadata">
                                         <small>
                                             {card.limit ? money.format(card.limit / 100) : "\u00a0"}
