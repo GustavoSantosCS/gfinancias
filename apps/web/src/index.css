@@ -990,7 +990,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 27px;
+  margin: 12px 0 27px 0;
 }
 .credit-card__name-row > strong {
   display: block;
