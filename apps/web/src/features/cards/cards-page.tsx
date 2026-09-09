@@ -521,7 +521,7 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                         <div
                                             aria-expanded={expandedPurchaseId === entry.purchaseId}
                                             aria-label={"Abrir detalhes de " + entry.title}
-                                            className="transactions-table__row transactions-table__row--interactive"
+                                            className="transactions-table__row transactions-table__row--interactive cursor-pointer"
                                             key={entry.id}
                                             onClick={() => setExpandedPurchaseId(entry.purchaseId)}
                                             onKeyDown={(event) => {
@@ -1088,7 +1088,7 @@ function PurchaseDetail({
                             <div className="purchase-detail__title-actions">
                                 <Button
                                     aria-label="Antecipar parcelas"
-                                    className="purchase-detail__icon-button"
+                                    className="purchase-detail__icon-button cursor-pointer"
                                     disabled={!canAnticipate}
                                     onClick={onAnticipate}
                                     size="icon"
@@ -1100,7 +1100,7 @@ function PurchaseDetail({
                                 </Button>
                                 <Button
                                     aria-label="Editar compra"
-                                    className="purchase-detail__icon-button"
+                                    className="purchase-detail__icon-button cursor-pointer"
                                     disabled={
                                         detail.anticipations.length > 0 ||
                                         detail.card.status === "ARCHIVED"
