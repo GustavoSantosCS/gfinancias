@@ -24,16 +24,22 @@ import { InputLabel } from "@gfinancias/ui/components/input-label";
 import { Label } from "@gfinancias/ui/components/label";
 import { Select } from "@gfinancias/ui/components/select";
 import { Textarea } from "@gfinancias/ui/components/textarea";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@gfinancias/ui/components/tooltip";
 
 import { trpc } from "@/utils/trpc";
 
 const money = new Intl.NumberFormat("pt-BR", { currency: "BRL", style: "currency" });
+const brandLabels = {
+    AMERICAN_EXPRESS: "American Express",
+    ELO: "Elo",
+    HIPERCARD: "Hipercard",
+    MASTERCARD: "Mastercard",
+    OTHER: "Outra",
+    VISA: "Visa",
+} as const;
+
+function formatDayAndMonth(day: number, month: number) {
+    return String(day).padStart(2, "0") + "/" + String(month).padStart(2, "0");
+}
 
 function formValue(data: FormData, key: string) {
     const value = data.get(key);
@@ -104,7 +110,6 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
     const [selectedPurchaseDetail, setSelectedPurchaseDetail] = useState<any>(null);
     const [editingPurchaseId, setEditingPurchaseId] = useState<string | null>(null);
     const [anticipatingPurchaseId, setAnticipatingPurchaseId] = useState<string | null>(null);
-    const [anticipationStartNumber, setAnticipationStartNumber] = useState<number | null>(null);
 
     const cardsQuery = useQuery(trpc.cards.list.queryOptions({ includeArchived }));
     const purchasesQuery = useQuery(
@@ -114,6 +119,9 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
             status: filterStatus,
             year,
         }),
+    );
+    const monthlyPurchasesQuery = useQuery(
+        trpc.cards.listPurchases.queryOptions({ month, status: "ALL", year }),
     );
     const createCard = useMutation(trpc.cards.create.mutationOptions());
     const createPurchase = useMutation(trpc.cards.createPurchase.mutationOptions());
@@ -130,7 +138,11 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
     const purchaseDetailQuery = useQuery(detailOptions);
 
     const refresh = async () => {
-        await Promise.all([cardsQuery.refetch(), purchasesQuery.refetch()]);
+        await Promise.all([
+            cardsQuery.refetch(),
+            purchasesQuery.refetch(),
+            monthlyPurchasesQuery.refetch(),
+        ]);
     };
 
     const submitCard = (event: FormEvent<HTMLFormElement>) => {
@@ -248,7 +260,7 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
     const detail: any = purchaseDetailQuery.data;
     const actionDetail = selectedPurchaseDetail ?? detail;
 
-    if (cardsQuery.isLoading || purchasesQuery.isLoading) {
+    if (cardsQuery.isLoading || purchasesQuery.isLoading || monthlyPurchasesQuery.isLoading) {
         return (
             <Container aria-label="Carregando cartões" className={embedded ? undefined : "main"}>
                 <div className={embedded ? undefined : "content"}>
@@ -257,7 +269,7 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
             </Container>
         );
     }
-    if (cardsQuery.error || purchasesQuery.error) {
+    if (cardsQuery.error || purchasesQuery.error || monthlyPurchasesQuery.error) {
         return (
             <Container className={embedded ? undefined : "main"}>
                 <div className={embedded ? undefined : "content"}>
@@ -275,6 +287,13 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
 
     const cards = cardsQuery.data ?? [];
     const activeCards = cards.filter((card) => card.status === "ACTIVE");
+    const monthlySpendingByCard = new Map<string, number>();
+    for (const entry of monthlyPurchasesQuery.data ?? []) {
+        monthlySpendingByCard.set(
+            entry.card.id,
+            (monthlySpendingByCard.get(entry.card.id) ?? 0) + entry.amount,
+        );
+    }
     const purchases = selectedCardId
         ? (purchasesQuery.data ?? []).filter((entry) => entry.card.id === selectedCardId)
         : (purchasesQuery.data ?? []);
@@ -325,6 +344,22 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                     <section aria-label="Cartões cadastrados" className="cards-grid">
                         {cards.map((card) => {
                             const selected = selectedCardId === card.id;
+                            const brand = card.brand ? brandLabels[card.brand] : null;
+                            const spending = monthlySpendingByCard.get(card.id);
+                            const billingDates =
+                                card.closingDay && card.dueDay
+                                    ? {
+                                          closing: formatDayAndMonth(card.closingDay, month),
+                                          due: formatDayAndMonth(
+                                              card.dueDay,
+                                              card.dueDay < card.closingDay
+                                                  ? month === 12
+                                                      ? 1
+                                                      : month + 1
+                                                  : month,
+                                          ),
+                                      }
+                                    : null;
                             return (
                                 <article
                                     aria-label={"Filtrar por " + card.name}
@@ -355,7 +390,34 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                         <CreditCard size={22} />
                                     </div>
                                     <strong>{card.name}</strong>
-                                    {card.lastDigits && <small>{"•••• " + card.lastDigits}</small>}
+                                    <div className="credit-card__metadata">
+                                        <small>
+                                            {card.limit || brand
+                                                ? [
+                                                      card.limit && money.format(card.limit / 100),
+                                                      brand,
+                                                  ]
+                                                      .filter(Boolean)
+                                                      .join(" - ")
+                                                : "\u00a0"}
+                                        </small>
+                                        <small>
+                                            {card.lastDigits ? "•••• " + card.lastDigits : "\u00a0"}
+                                        </small>
+                                        <small>
+                                            {billingDates
+                                                ? "Fechamento: " +
+                                                  billingDates.closing +
+                                                  " - Vencimento: " +
+                                                  billingDates.due
+                                                : "\u00a0"}
+                                        </small>
+                                        <small>
+                                            {spending
+                                                ? "Gasto do mês: " + money.format(spending / 100)
+                                                : "\u00a0"}
+                                        </small>
+                                    </div>
                                     <Button
                                         aria-label={"Editar " + card.name}
                                         className="credit-card__edit"
@@ -476,9 +538,8 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                     {detail && expandedPurchaseId === detail.id && (
                                         <PurchaseDetail
                                             detail={detail}
-                                            onAnticipate={(id, number) => {
-                                                setAnticipatingPurchaseId(id);
-                                                setAnticipationStartNumber(number);
+                                            onAnticipate={() => {
+                                                setAnticipatingPurchaseId(detail.id);
                                                 setSelectedPurchaseDetail(detail);
                                                 setExpandedPurchaseId(null);
                                             }}
@@ -640,7 +701,6 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                         error={anticipate.error?.message}
                         focusMonth={month}
                         focusYear={year}
-                        startNumber={anticipationStartNumber ?? 2}
                         onClose={() => {
                             setAnticipatingPurchaseId(null);
                             setSelectedPurchaseDetail(null);
@@ -973,13 +1033,14 @@ function PurchaseDetail({
     onEdit,
 }: {
     detail: any;
-    onAnticipate: (id: string, number: number) => void;
+    onAnticipate: () => void;
     onClose: () => void;
     onDelete: () => void;
     onEdit: () => void;
 }) {
     const eligible = (entry: any) =>
         entry.kind === "REGULAR" && entry.number >= 2 && detail.card.status === "ACTIVE";
+    const canAnticipate = detail.schedule.some(eligible);
     const installmentLabel =
         detail.installments === 1 ? "À vista" : `${detail.installments} parcelas`;
 
@@ -998,6 +1059,18 @@ function PurchaseDetail({
                                 <dd>{detail.title}</dd>
                             </div>
                             <div className="purchase-detail__title-actions">
+                                <Button
+                                    aria-label="Antecipar parcelas"
+                                    className="purchase-detail__icon-button"
+                                    disabled={!canAnticipate}
+                                    onClick={onAnticipate}
+                                    size="icon"
+                                    title="Antecipar parcelas"
+                                    type="button"
+                                    variant="outline"
+                                >
+                                    <FastForward aria-hidden="true" size={15} />
+                                </Button>
                                 <Button
                                     aria-label="Editar compra"
                                     className="purchase-detail__icon-button"
@@ -1062,69 +1135,26 @@ function PurchaseDetail({
                                     <th scope="col">Mês</th>
                                     <th scope="col">Valor</th>
                                     <th scope="col">Estado</th>
-                                    <th aria-label="Ações" scope="col" />
                                 </tr>
                             </thead>
                             <tbody>
-                                {detail.schedule.map((entry: any) => {
-                                    const canAnticipate = eligible(entry);
-                                    return (
-                                        <tr key={entry.id}>
-                                            <td>
-                                                {entry.number}/{entry.total}
-                                            </td>
-                                            <td>
-                                                {String(entry.competenceMonth).padStart(2, "0")}/
-                                                {entry.competenceYear}
-                                            </td>
-                                            <td>{money.format(entry.amount / 100)}</td>
-                                            <td>
-                                                {entry.kind === "ANTICIPATION"
-                                                    ? "Antecipada"
-                                                    : "Em aberto"}
-                                            </td>
-                                            <td>
-                                                {canAnticipate && (
-                                                    <TooltipProvider delay={0}>
-                                                        <Tooltip>
-                                                            <TooltipTrigger
-                                                                aria-label={
-                                                                    "Antecipar parcela " +
-                                                                    entry.number
-                                                                }
-                                                                render={
-                                                                    <Button
-                                                                        aria-label={
-                                                                            "Antecipar parcela " +
-                                                                            entry.number
-                                                                        }
-                                                                        onClick={() =>
-                                                                            onAnticipate(
-                                                                                detail.id,
-                                                                                entry.number,
-                                                                            )
-                                                                        }
-                                                                        size="icon"
-                                                                        type="button"
-                                                                        variant="outline"
-                                                                    >
-                                                                        <FastForward
-                                                                            aria-hidden="true"
-                                                                            size={15}
-                                                                        />
-                                                                    </Button>
-                                                                }
-                                                            />
-                                                            <TooltipContent>
-                                                                Antecipação
-                                                            </TooltipContent>
-                                                        </Tooltip>
-                                                    </TooltipProvider>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
+                                {detail.schedule.map((entry: any) => (
+                                    <tr key={entry.id}>
+                                        <td>
+                                            {entry.number}/{entry.total}
+                                        </td>
+                                        <td>
+                                            {String(entry.competenceMonth).padStart(2, "0")}/
+                                            {entry.competenceYear}
+                                        </td>
+                                        <td>{money.format(entry.amount / 100)}</td>
+                                        <td>
+                                            {entry.kind === "ANTICIPATION"
+                                                ? "Antecipada"
+                                                : "Em aberto"}
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                     </div>
@@ -1274,7 +1304,6 @@ function AnticipationForm({
     error,
     focusMonth,
     focusYear,
-    startNumber,
     onClose,
     onSubmit,
     pending,
@@ -1283,27 +1312,25 @@ function AnticipationForm({
     error?: string;
     focusMonth: number;
     focusYear: number;
-    startNumber: number;
     onClose: () => void;
     onSubmit: (input: any) => void;
     pending: boolean;
 }) {
     const available = detail.schedule.filter(
-        (entry: any) => entry.kind === "REGULAR" && entry.number >= startNumber,
+        (entry: any) => entry.kind === "REGULAR" && entry.number >= 2,
     );
-    const [selected, setSelected] = useState<number[]>(available.length ? [startNumber] : []);
+    const [selected, setSelected] = useState<number[]>(available.map((entry: any) => entry.number));
     const [mode, setMode] = useState<"SEPARATE" | "GROUPED">("GROUPED");
     const [values, setValues] = useState<string[]>([]);
     const today = new Date().toISOString().slice(0, 10);
     const selectedEntries = available.filter((entry: any) => selected.includes(entry.number));
-    const first = selectedEntries[0];
     const originalTotal = selectedEntries.reduce(
         (sum: number, entry: any) => sum + entry.amount,
         0,
     );
     const anticipatedValues =
         mode === "GROUPED"
-            ? [toCents(values[0] ?? String((first?.amount ?? 0) / 100))]
+            ? [toCents(values[0] ?? String(originalTotal / 100))]
             : selectedEntries.map((entry: any, index: number) =>
                   toCents(values[index] ?? String(entry.amount / 100)),
               );
@@ -1395,7 +1422,7 @@ function AnticipationForm({
                 </Label>
                 {mode === "GROUPED" ? (
                     <FieldInput
-                        defaultValue={String((first?.amount ?? 0) / 100)}
+                        defaultValue={String(originalTotal / 100)}
                         label="Valor da parcela de agrupamento"
                         min="0.01"
                         name="value"

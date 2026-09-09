@@ -80,11 +80,29 @@ it("shows an empty state and opens the accessible card form", async () => {
 });
 
 it("shows monthly entries and opens the purchase form for active cards", async () => {
-    cardsState = query([{ color: "#0f766e", id: "card-1", name: "Visa", status: "ACTIVE" }]);
+    cardsState = query([
+        {
+            brand: "VISA",
+            closingDay: 26,
+            color: "#0f766e",
+            dueDay: 5,
+            id: "card-1",
+            lastDigits: "0000",
+            limit: 111_111,
+            name: "Visa",
+            status: "ACTIVE",
+        },
+        {
+            color: "#2563eb",
+            id: "card-2",
+            name: "Minimal",
+            status: "ACTIVE",
+        },
+    ]);
     purchasesState = query([
         {
             amount: 12_345,
-            card: { name: "Visa", status: "ACTIVE" },
+            card: { id: "card-1", name: "Visa", status: "ACTIVE" },
             competenceMonth: 9,
             competenceYear: 2028,
             description: "Curso",
@@ -100,6 +118,22 @@ it("shows monthly entries and opens the purchase form for active cards", async (
     const user = userEvent.setup();
 
     render(<CardsPage />);
+
+    expect(screen.getByRole("button", { name: "Filtrar por Visa" }).textContent).toContain(
+        "R$ 1.111,11 - Visa",
+    );
+    expect(screen.getByRole("button", { name: "Filtrar por Visa" }).textContent).toContain(
+        "•••• 0000",
+    );
+    const visaCard = screen.getByRole("button", { name: "Filtrar por Visa" });
+    expect(visaCard.textContent).toContain("Fechamento: 26/09 - Vencimento: 05/10");
+    expect(visaCard.textContent).toContain("Gasto do mês: R$ 123,45");
+    expect(visaCard.textContent?.indexOf("Fechamento")).toBeLessThan(
+        visaCard.textContent?.indexOf("Gasto do mês") ?? 0,
+    );
+    const minimalCard = screen.getByRole("button", { name: "Filtrar por Minimal" });
+    expect(minimalCard.textContent).toContain("Minimal");
+    expect(minimalCard.querySelectorAll(".credit-card__metadata > small")).toHaveLength(4);
 
     expect(
         screen.getByRole("heading", { name: "Detalhamento" }).parentElement?.className,
@@ -326,6 +360,15 @@ it("expands purchase details and exposes edit/delete and anticipation eligibilit
                 number: 2,
                 total: 3,
             },
+            {
+                amount: 1000,
+                competenceMonth: 11,
+                competenceYear: 2028,
+                id: "three",
+                kind: "REGULAR",
+                number: 3,
+                total: 3,
+            },
         ],
     });
     const user = userEvent.setup();
@@ -364,10 +407,10 @@ it("expands purchase details and exposes edit/delete and anticipation eligibilit
     expect(
         Array.from(detailDialog.querySelectorAll("td")).map((item) => item.textContent),
     ).toContain("Em aberto");
-    const anticipationButton = screen.getByRole("button", { name: "Antecipar parcela 2" });
+    const anticipationButton = screen.getByRole("button", { name: "Antecipar parcelas" });
     expect(anticipationButton).toBeTruthy();
-    await user.hover(anticipationButton);
-    expect(await screen.findByText("Antecipação")).toBeTruthy();
+    expect(anticipationButton.closest(".purchase-detail__title-actions")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Antecipar parcela 2" })).toBeNull();
     await user.click(screen.getByRole("button", { name: "Editar compra" }));
     const editorDialog = screen.getByRole("dialog", { name: "Editar compra" });
     expect(editorDialog.className).toContain("purchase-form-dialog");
@@ -396,7 +439,7 @@ it("expands purchase details and exposes edit/delete and anticipation eligibilit
     await user.click(screen.getByRole("button", { name: "Abrir detalhes de Curso" }));
     vi.spyOn(window, "confirm").mockReturnValue(true);
     await user.click(screen.getByRole("button", { name: "Excluir compra" }));
-    await user.click(screen.getByRole("button", { name: "Antecipar parcela 2" }));
+    await user.click(screen.getByRole("button", { name: "Antecipar parcelas" }));
     const anticipationDialog = screen.getByRole("dialog", { name: "Antecipar parcelas" });
     expect(anticipationDialog.className).toContain("anticipation-dialog");
     expect(anticipationDialog.querySelector(".anticipation-parcels-list")).toBeTruthy();
@@ -410,14 +453,18 @@ it("expands purchase details and exposes edit/delete and anticipation eligibilit
         screen
             .getByRole("spinbutton", { name: "Valor da parcela de agrupamento" })
             .getAttribute("value"),
-    ).toBe("10");
+    ).toBe("20");
     expect(screen.getByText("Valor original da compra")).toBeTruthy();
     expect(screen.getByText("Novo valor total")).toBeTruthy();
     expect(screen.getByText("Desconto da antecipação")).toBeTruthy();
     expect(screen.getByText("Descrição que será criada pelo sistema")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Salvar" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeTruthy();
-    const installment = screen.getByRole("checkbox");
+    const installment = screen.getByRole("checkbox", { name: "Parcela 2 de 3" });
+    expect((installment as HTMLInputElement).checked).toBe(true);
+    expect(
+        (screen.getByRole("checkbox", { name: "Parcela 3 de 3" }) as HTMLInputElement).checked,
+    ).toBe(true);
     await user.click(installment);
     await user.click(installment);
     await user.selectOptions(screen.getByRole("combobox", { name: "Modo" }), "SEPARATE");

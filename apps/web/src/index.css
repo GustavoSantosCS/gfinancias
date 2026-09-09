@@ -987,6 +987,19 @@ button {
   color: rgb(255 255 255 / 58%);
   font-size: 8px;
 }
+.credit-card__metadata {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  color: rgb(255 255 255 / 72%);
+  font-size: 8px;
+}
+.credit-card__metadata small {
+  font-size: inherit;
+}
 .credit-card__footer {
   margin-top: 22px;
   color: rgb(255 255 255 / 68%);
