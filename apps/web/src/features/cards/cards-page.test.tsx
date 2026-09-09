@@ -175,6 +175,7 @@ it("shows monthly entries and opens the purchase form for active cards", async (
     expect(screen.queryByText("Competência")).toBeNull();
     expect(screen.getByText("Curso")).toBeTruthy();
     expect(screen.getByText("2/3")).toBeTruthy();
+    expect(document.querySelector(".transactions-table__amount")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: /Nova compra/ }));
     expect(screen.getByRole("textbox", { name: "Título" })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Descrição" })).toBeTruthy();
@@ -215,7 +216,7 @@ it("centers the empty purchase state", () => {
 
     render(<CardsPage />);
 
-    expect(screen.getByText("Nenhuma compra nesta competência.").className).toContain(
+    expect(screen.getByText("Nenhuma compra nesse cartão").className).toContain(
         "transactions-empty",
     );
 });

@@ -1138,6 +1138,9 @@ button {
 .transactions-table__row--interactive > strong {
   white-space: nowrap;
 }
+.transactions-table__row--interactive > .transactions-table__amount {
+  text-align: left;
+}
 .transactions-table__row strong {
   text-align: right;
 }

@@ -1,0 +1,5 @@
+interface:
+  display_name: "New worktree"
+  short_description: "Create an isolated task worktree safely"
+policy:
+  allow_implicit_invocation: false

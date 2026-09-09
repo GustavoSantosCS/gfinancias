@@ -534,7 +534,9 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                             tabIndex={0}
                                         >
                                             <span>{entry.title}</span>
-                                            <strong>{money.format(entry.amount / 100)}</strong>
+                                            <strong className="transactions-table__amount">
+                                                {money.format(entry.amount / 100)}
+                                            </strong>
                                             <span>
                                                 {entry.kind === "ANTICIPATION"
                                                     ? "Antecipação"
@@ -605,9 +607,7 @@ export function CardsPage({ embedded = false }: { embedded?: boolean }) {
                                     )}
                                 </div>
                             ) : (
-                                <p className="transactions-empty">
-                                    Nenhuma compra nesta competência.
-                                </p>
+                                <p className="transactions-empty">Nenhuma compra nesse cartão</p>
                             )}
                         </section>
                     </>

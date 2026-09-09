@@ -1,0 +1,3 @@
+interface:
+  display_name: "Worktree context"
+  short_description: "Decide when code changes need a new worktree"
