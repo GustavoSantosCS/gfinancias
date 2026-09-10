@@ -22,10 +22,10 @@ export function CardsHeader({
                 <h1>Cartões</h1>
             </div>
             <div className="heading-actions">
-                <Button onClick={onToggleArchived} type="button">
+                <Button onClick={onToggleArchived} type="button" variant="default">
                     {includeArchived ? "Ocultar arquivados" : "Mostrar arquivados"}
                 </Button>
-                <Button onClick={onNewCard} type="button">
+                <Button onClick={onNewCard} type="button" variant="default">
                     <Plus size={16} /> Novo cartão
                 </Button>
                 <Button

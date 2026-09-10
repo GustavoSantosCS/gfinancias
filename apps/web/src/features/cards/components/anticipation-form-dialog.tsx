@@ -103,6 +103,7 @@ export function AnticipationFormDialog({
                                 >
                                     <Checkbox
                                         aria-label={`Parcela ${entry.number} de ${entry.total}`}
+                                        className="anticipation-parcel-checkbox"
                                         id={id}
                                         checked={selected.includes(entry.number)}
                                         onCheckedChange={() =>
@@ -201,7 +202,7 @@ export function AnticipationFormDialog({
                     <p>{preview.description}</p>
                 </div>
                 <div className="anticipation-actions">
-                    <Button onClick={onClose} type="button">
+                    <Button onClick={onClose} type="button" variant="default">
                         Cancelar
                     </Button>
                     <Button

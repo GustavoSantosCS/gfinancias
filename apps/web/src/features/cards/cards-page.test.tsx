@@ -506,8 +506,10 @@ it("expands purchase details and exposes edit/delete and anticipation eligibilit
     expect(screen.getByText("Desconto da antecipação")).toBeTruthy();
     expect(screen.getByText("Descrição que será criada pelo sistema")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Salvar" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Cancelar" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Cancelar" }).className).toContain("button--default");
     const installment = screen.getByRole("checkbox", { name: "Parcela 2 de 3" });
+    expect(installment.className).toContain("anticipation-parcel-checkbox");
+    expect(installment.closest("label")?.className).toContain("anticipation-parcel-option");
     expect(installment.getAttribute("aria-checked")).toBe("true");
     expect(
         screen.getByRole("checkbox", { name: "Parcela 3 de 3" }).getAttribute("aria-checked"),

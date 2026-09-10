@@ -12,10 +12,10 @@ export function CardsLoading() {
                     <h1>Cartões</h1>
                 </div>
                 <div className="heading-actions">
-                    <Button disabled type="button">
+                    <Button disabled type="button" variant="default">
                         Mostrar arquivados
                     </Button>
-                    <Button disabled type="button">
+                    <Button disabled type="button" variant="default">
                         <Plus size={16} /> Novo cartão
                     </Button>
                     <Button disabled type="button" variant="primary">

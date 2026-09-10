@@ -4,9 +4,45 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { CardFormDialog } from "./components/card-form-dialog";
 import { CardGrid } from "./components/card-grid";
+import { CardsHeader } from "./components/cards-header";
+import { CardsLoading } from "./components/cards-loading";
 import { PurchasesTable } from "./components/purchases-table";
 
 describe("card presentation components", () => {
+    it("reserves the primary style for the new purchase action", () => {
+        const { rerender } = render(
+            <CardsHeader
+                canCreatePurchase
+                includeArchived={false}
+                onNewCard={vi.fn()}
+                onNewPurchase={vi.fn()}
+                onToggleArchived={vi.fn()}
+            />,
+        );
+
+        expect(screen.getByRole("button", { name: "Mostrar arquivados" }).className).toContain(
+            "button--default",
+        );
+        expect(screen.getByRole("button", { name: /Novo cartão/ }).className).toContain(
+            "button--default",
+        );
+        expect(screen.getByRole("button", { name: /Nova compra/ }).className).toContain(
+            "button--primary",
+        );
+
+        rerender(<CardsLoading />);
+
+        expect(screen.getByRole("button", { name: "Mostrar arquivados" }).className).toContain(
+            "button--default",
+        );
+        expect(screen.getByRole("button", { name: /Novo cartão/ }).className).toContain(
+            "button--default",
+        );
+        expect(screen.getByRole("button", { name: /Nova compra/ }).className).toContain(
+            "button--primary",
+        );
+    });
+
     it("focuses invalid card input and exposes validation feedback", async () => {
         const user = userEvent.setup();
         render(<CardFormDialog onClose={vi.fn()} onSubmit={vi.fn()} pending={false} />);
