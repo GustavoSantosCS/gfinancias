@@ -56,6 +56,17 @@ function ensureBackendHookTimeout(directory) {
         );
         writeFileSync(packagePath, JSON.stringify(packageJson, null, 4) + "\n");
     }
+    const routerTestPath = join(directory, "packages/api/src/routers/cards.test.ts");
+    const routerTest = readFileSync(routerTestPath, "utf8");
+    if (!routerTest.includes("}, 30_000);")) {
+        const updatedRouterTest = routerTest.replace(
+            "    });\n});\n\nbeforeEach",
+            "    });\n}, 30_000);\n\nbeforeEach",
+        );
+        if (updatedRouterTest === routerTest)
+            throw new Error("Unable to configure backend coverage hook timeout.");
+        writeFileSync(routerTestPath, updatedRouterTest);
+    }
 }
 
 function summaryPath(directory, area) {

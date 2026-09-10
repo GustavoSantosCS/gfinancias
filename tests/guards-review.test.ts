@@ -73,6 +73,12 @@ it("uses the local main branch and integrates full coverage comparison into CI",
     expect(
         readFileSync(join(root, "scripts/guards/check-coverage-workflow.mjs"), "utf8"),
     ).toContain("ensureBackendHookTimeout");
+    expect(
+        readFileSync(join(root, "scripts/guards/check-coverage-workflow.mjs"), "utf8"),
+    ).toContain("routerTestPath");
+    expect(readFileSync(join(root, "packages/api/src/routers/cards.test.ts"), "utf8")).toContain(
+        "}, 30_000);",
+    );
 });
 
 it("rejects removed thresholds and Vite coverage includes", () => {

@@ -30,8 +30,20 @@ it("exposes fast, complete, and focused npm commands", () => {
             "guard:coverage": expect.stringContaining("check-coverage-regression.mjs"),
             "guard:staged": expect.stringContaining("--staged"),
             "test:coverage:backend": expect.stringContaining("coverage/backend"),
+            "guard:coverage:full": expect.stringContaining("check-coverage-workflow.mjs"),
             "test:coverage:frontend": expect.stringContaining("coverage/frontend"),
         }),
+    );
+});
+
+it("configures the temporary base router test for cold Prisma migrations", () => {
+    const coverageWorkflow = readFileSync(
+        join(root, "scripts/guards/check-coverage-workflow.mjs"),
+        "utf8",
+    );
+    expect(coverageWorkflow).toContain("routerTestPath");
+    expect(readFileSync(join(root, "packages/api/src/routers/cards.test.ts"), "utf8")).toContain(
+        "}, 30_000);",
     );
 });
 
