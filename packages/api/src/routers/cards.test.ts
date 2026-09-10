@@ -133,7 +133,10 @@ describe("cards router", () => {
             amount: 9_000,
             competenceMonth: 1,
             competenceYear: 2028,
+            createdAt: expect.any(Date),
+            id: expect.any(String),
             kind: "ANTICIPATION",
+            purchaseId: purchase.id,
         });
         expect(await db.cardInstallment.count({ where: { purchaseId: purchase.id } })).toBe(2);
         await expect(

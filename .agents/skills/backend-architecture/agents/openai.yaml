@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arquitetura backend"
+  short_description: "Estruture domínios backend com tRPC e Prisma"
+  default_prompt: "Use $backend-architecture para estruturar esta feature de backend."
