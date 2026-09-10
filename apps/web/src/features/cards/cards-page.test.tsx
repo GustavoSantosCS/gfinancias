@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, expect, it, vi } from "vite-plus/test";
 
-const { useMutation, useQuery, useQueryClient } = vi.hoisted(() => ({
+const { searchParams, useMutation, useQuery, useQueryClient } = vi.hoisted(() => ({
+    searchParams: { current: new URLSearchParams("month=9&year=2028") },
     useMutation: vi.fn(),
     useQuery: vi.fn(),
     useQueryClient: vi.fn(),
@@ -16,7 +17,7 @@ vi.mock("@tanstack/react-query", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-    useSearchParams: () => new URLSearchParams("month=9&year=2028"),
+    useSearchParams: () => searchParams.current,
 }));
 
 vi.mock("@/utils/trpc", () => {
@@ -65,6 +66,7 @@ let purchasesState: QueryState;
 let detailState: QueryState;
 
 beforeEach(() => {
+    searchParams.current = new URLSearchParams("month=9&year=2028");
     cardsState = query([]);
     purchasesState = query([]);
     detailState = query(null);
@@ -87,6 +89,20 @@ beforeEach(() => {
                       ? query(null)
                       : purchasesState,
     );
+});
+
+it("uses the server period when the URL has no period", () => {
+    searchParams.current = new URLSearchParams();
+    cardsState = query([]);
+    purchasesState = query([]);
+
+    render(<CardsPage initialPeriod={{ month: 2, year: 2030 }} />);
+
+    expect(
+        useQuery.mock.calls.some(
+            ([input]) => typeof input === "object" && input?.month === 2 && input?.year === 2030,
+        ),
+    ).toBe(true);
 });
 
 it("shows an empty state and opens the accessible card form", async () => {

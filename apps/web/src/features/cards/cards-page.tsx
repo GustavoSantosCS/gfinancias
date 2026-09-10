@@ -23,10 +23,16 @@ import type { PurchaseStatus } from "./types";
 
 type DialogMode = "detail" | "edit-purchase" | "anticipation" | null;
 
-export function CardsPage({ embedded = false }: { embedded?: boolean }) {
+export function CardsPage({
+    embedded = false,
+    initialPeriod,
+}: {
+    embedded?: boolean;
+    initialPeriod?: { month: number; year: number };
+}) {
     const Container = embedded ? "div" : "main";
     const params = useSearchParams();
-    const fallback = useMemo(currentPeriod, []);
+    const fallback = useMemo(() => initialPeriod ?? currentPeriod(), [initialPeriod]);
     const month = Number(params.get("month") ?? fallback.month);
     const year = Number(params.get("year") ?? fallback.year);
     const [includeArchived, setIncludeArchived] = useState(false);

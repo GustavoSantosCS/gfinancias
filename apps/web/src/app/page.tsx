@@ -44,6 +44,7 @@ import type {
 import { ReservesView } from "@/components/reserves-view";
 import { translatePlanningError } from "@/features/planning/utils/api-errors";
 import { trpc } from "@/utils/trpc";
+import { currentPeriod } from "@/lib/dates";
 
 const navigation = [
     { id: "overview" as const, label: "Visão geral", icon: LayoutDashboard },
@@ -109,9 +110,11 @@ function amount(value: string) {
 }
 export function PrototypeHome({
     cardsContent,
+    initialPeriod,
     initialView = "overview",
 }: {
     cardsContent?: ReactNode;
+    initialPeriod?: { month: number; year: number };
     initialView?: View;
 }) {
     const [view, setView] = useState<View>(initialView);
@@ -120,11 +123,11 @@ export function PrototypeHome({
     const [dark, setDark] = useState(false);
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
-    const today = useMemo(() => new Date(), []);
+    const fallbackPeriod = initialPeriod ?? currentPeriod();
     const [{ month, year }, setPeriod] = useQueryStates(
         {
-            month: parseAsInteger.withDefault(today.getMonth() + 1),
-            year: parseAsInteger.withDefault(today.getFullYear()),
+            month: parseAsInteger.withDefault(fallbackPeriod.month),
+            year: parseAsInteger.withDefault(fallbackPeriod.year),
         },
         { clearOnDefault: false, history: "push" },
     );
