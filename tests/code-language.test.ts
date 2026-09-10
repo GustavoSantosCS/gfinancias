@@ -6,16 +6,36 @@ import { afterEach, expect, it } from "vite-plus/test";
 
 const script = join(process.cwd(), "scripts/check-code-language.mjs");
 const directories: string[] = [];
+const isolatedGitVariables = [
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_DIR",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_WORK_TREE",
+];
+
+function isolatedGitEnvironment(environment: NodeJS.ProcessEnv) {
+    const result = { ...environment };
+    for (const variable of isolatedGitVariables) delete result[variable];
+    return result;
+}
 
 function review(
     response: unknown,
     source = 'export const title = "Bem-vindo";\n',
     exitCode = 0,
     unstaged?: string,
+    gitIndexFile?: string,
 ) {
     const directory = mkdtempSync(join(tmpdir(), "language-hook-test-"));
     directories.push(directory);
-    const git = (...args: string[]) => execFileSync("git", args, { cwd: directory });
+    const inheritedGitEnvironment = gitIndexFile
+        ? { ...process.env, GIT_INDEX_FILE: gitIndexFile }
+        : process.env;
+    const fixtureEnvironment = isolatedGitEnvironment(inheritedGitEnvironment);
+    const git = (...args: string[]) =>
+        execFileSync("git", args, { cwd: directory, env: fixtureEnvironment });
     git("init", "-q");
     writeFileSync(join(directory, "page.ts"), source);
     git("add", "page.ts");
@@ -36,7 +56,7 @@ process.exit(${exitCode});
     );
     const result = spawnSync(process.execPath, [script], {
         cwd: directory,
-        env: { ...process.env, PATH: `${bin}:${process.env.PATH}` },
+        env: { ...fixtureEnvironment, PATH: `${bin}:${process.env.PATH}` },
         encoding: "utf8",
         timeout: 10000,
     });
@@ -59,6 +79,29 @@ it("allows Portuguese UI text and sends only staged content for review", () => {
     expect(prompt()).toContain("Bem-vindo");
     expect(prompt()).not.toContain("unstaged private note");
     expect(prompt()).toContain("user-facing");
+});
+
+it("keeps isolated language review fixtures independent from the lint-staged index", () => {
+    const foreignDirectory = mkdtempSync(join(tmpdir(), "language-hook-foreign-index-"));
+    directories.push(foreignDirectory);
+    const foreignGit = (...args: string[]) =>
+        execFileSync("git", args, {
+            cwd: foreignDirectory,
+            env: isolatedGitEnvironment(process.env),
+        });
+    foreignGit("init", "-q");
+    writeFileSync(join(foreignDirectory, "foreign.ts"), "export const foreign = true;\n");
+    foreignGit("add", "foreign.ts");
+
+    const { result } = review(
+        { violations: [] },
+        undefined,
+        0,
+        undefined,
+        join(foreignDirectory, ".git/index"),
+    );
+
+    expect(result.status, result.stderr).toBe(0);
 });
 
 it("blocks Portuguese code or comments reported by Codex", () => {

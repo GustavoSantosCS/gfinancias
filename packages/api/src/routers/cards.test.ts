@@ -17,7 +17,7 @@ beforeAll(() => {
         env: process.env,
         stdio: "pipe",
     });
-});
+}, 30_000);
 
 beforeEach(async () => {
     await db.cardInstallment.deleteMany();

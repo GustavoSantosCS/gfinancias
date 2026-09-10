@@ -1,5 +1,13 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+    cpSync,
+    mkdtempSync,
+    mkdirSync,
+    readFileSync,
+    rmSync,
+    symlinkSync,
+    writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it } from "vite-plus/test";
@@ -7,12 +15,22 @@ import config from "../vite.config";
 
 const root = process.cwd();
 const directories: string[] = [];
+const fixtureEnvironment = { ...process.env };
+for (const variable of [
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_DIR",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_WORK_TREE",
+])
+    delete fixtureEnvironment[variable];
 
-function setup(source: string, expected = 42) {
+function setup(source: string, expected = 42, guardedSource?: string) {
     const directory = mkdtempSync(join(tmpdir(), "gfinances-hook-"));
     directories.push(directory);
     const git = (...args: string[]) =>
-        execFileSync("git", args, { cwd: directory, encoding: "utf8" });
+        execFileSync("git", args, { cwd: directory, encoding: "utf8", env: fixtureEnvironment });
     git("init", "-q");
     git("config", "user.email", "test@example.com");
     git("config", "user.name", "Hook Test");
@@ -43,16 +61,24 @@ function setup(source: string, expected = 42) {
     );
     mkdirSync(join(directory, "scripts"));
     writeFileSync(join(directory, "scripts/check-code-language.mjs"), "process.exit(0);\n");
+    cpSync(join(root, "scripts/guards"), join(directory, "scripts/guards"), {
+        recursive: true,
+    });
     git("add", ".");
     git("-c", "core.hooksPath=/dev/null", "commit", "-qm", "Initial fixture");
     writeFileSync(join(directory, "value.js"), source);
     git("add", "value.js");
+    if (guardedSource) {
+        writeFileSync(join(directory, "guarded.ts"), guardedSource);
+        git("add", "guarded.ts");
+    }
     const result = spawnSync("git", ["hook", "run", "pre-commit"], {
         cwd: directory,
         encoding: "utf8",
+        env: fixtureEnvironment,
         timeout: 30000,
     });
-    return { result, git };
+    return { directory, result, git };
 }
 
 afterEach(() => {
@@ -60,10 +86,20 @@ afterEach(() => {
         rmSync(directory, { recursive: true, force: true });
 });
 
-it("formats staged code and runs only related tests", () => {
+it("formats staged code, runs related tests, and executes the real repository guards", () => {
     const { result, git } = setup("export function value(){\nreturn 42\n}\n");
     expect(result.status, result.stdout + result.stderr).toBe(0);
     expect(git("show", ":value.js")).toContain("\n    return 42;\n");
+}, 40000);
+
+it("blocks the commit when the real guard finds explicit any", () => {
+    const { result } = setup(
+        "export function value(){\nreturn 42\n}\n",
+        42,
+        "export const guarded: any = 1;\n",
+    );
+    expect(result.status).not.toBe(0);
+    expect(result.stdout + result.stderr).toContain("typescript/no-explicit-any");
 }, 40000);
 
 it("blocks the commit when a related test fails", () => {

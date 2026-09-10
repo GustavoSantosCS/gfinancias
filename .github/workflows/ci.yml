@@ -22,6 +22,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -31,8 +33,10 @@ jobs:
         run: npm ci
       - name: Check formatting, lint, and types
         run: npm run check
-      - name: Run tests with coverage
-        run: npm run test:coverage
+      - name: Run repository guards
+        run: npm run guard -- --base ${{ github.event.pull_request.base.sha }} --format github --checks explicit-any,architecture,test-hygiene,financial-conventions,test-companion,complexity,contract-regression,coverage-policy
+      - name: Run tests and compare coverage
+        run: npm run guard:coverage:full -- --base ${{ github.event.pull_request.base.sha }} --format github
       - name: Build applications
         run: npm run build
       - name: Apply database migrations
