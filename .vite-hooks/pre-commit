@@ -1,4 +1,5 @@
 #!/bin/sh
 set -eu
 npm run staged
+node scripts/guards/run.mjs --staged --checks explicit-any,architecture,test-hygiene,financial-conventions,test-companion,markdown-authorization
 node scripts/check-code-language.mjs
